@@ -3,15 +3,22 @@ session_start();
 require 'db_connect.php';
 require 'survey_navigation.php'; // Include the helper function
 
-// Fetch all users for the "Who Are You" dropdown and for JavaScript filtering
+// Fetch all users for the "Who Are You" dropdown
 $stmt = $pdo->query("SELECT user_id, first_name, last_name FROM users ORDER BY first_name, last_name");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Count items for each tool type
+// Fetch all tools for modals
+$all_tools = [
+    'software' => $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'software' ORDER BY tool_name")->fetchAll(PDO::FETCH_ASSOC),
+    'hardware' => $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'hardware' ORDER BY tool_name")->fetchAll(PDO::FETCH_ASSOC),
+    'analog' => $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'analog' ORDER BY tool_name")->fetchAll(PDO::FETCH_ASSOC),
+];
+
+// Count items for each tool type (for conditional rendering)
 $tool_counts = [
-    'software' => $pdo->query("SELECT COUNT(*) FROM tools WHERE tool_type = 'software'")->fetchColumn(),
-    'hardware' => $pdo->query("SELECT COUNT(*) FROM tools WHERE tool_type = 'hardware'")->fetchColumn(),
-    'analog' => $pdo->query("SELECT COUNT(*) FROM tools WHERE tool_type = 'analog'")->fetchColumn(),
+    'software' => count($all_tools['software']),
+    'hardware' => count($all_tools['hardware']),
+    'analog' => count($all_tools['analog']),
     'people' => $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn()
 ];
 
@@ -19,20 +26,24 @@ $tool_counts = [
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['user_id'] = $_POST['user_id'] ?? null;
     
-    // Handle people (only if people section is available)
+    // Handle people selections
     $_SESSION['selected_people'] = ($tool_counts['people'] > 0 && !empty($_POST['people']) && !empty($_POST['people'][0]))
         ? explode(',', $_POST['people'][0])
         : [];
     
-    // Combine all tool selections into a single selected_tools array
+    // Handle tool selections
     $_SESSION['selected_tools'] = array_merge(
         ($tool_counts['software'] > 0 && !empty($_POST['software']) && !empty($_POST['software'][0])) ? explode(',', $_POST['software'][0]) : [],
         ($tool_counts['hardware'] > 0 && !empty($_POST['hardware']) && !empty($_POST['hardware'][0])) ? explode(',', $_POST['hardware'][0]) : [],
         ($tool_counts['analog'] > 0 && !empty($_POST['analog']) && !empty($_POST['analog'][0])) ? explode(',', $_POST['analog'][0]) : []
     );
-    
+
+    // Debug: Log session data to verify
+    error_log("Session Data: " . print_r($_SESSION, true));
+
     // Determine the next page dynamically
     $nextPage = getNextSurveyPage($_SESSION['selected_people'], $_SESSION['selected_tools'], 'index');
+    error_log("Next Page: $nextPage");
     header("Location: $nextPage");
     exit();
 }
@@ -46,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Survey MVP - Selections</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
+        /* Same CSS as previous version */
         :root {
             --primary: #6B48FF;
             --secondary: #00DDEB;
@@ -208,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .card-subtitle {
-            color: #6B7280; /* Matches --gray-500 */
+            color: #6B7280;
             font-size: 0.9rem;
         }
 
@@ -504,14 +516,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <p class="card-subtitle">Select your relevant <?= strtolower($title) ?></p>
                     </div>
                     <div class="card-actions">
-                        <button type="button" class="action-btn select-btn" onclick="openModal('<?= $type ?>Modal')">Select</button>
-                        <button type="button" class="action-btn preview-btn" onclick="openModal('<?= $type ?>PreviewModal')">Preview</button>
+                        <button type="button" class="action-btn select-btn" data-modal="<?= $type ?>Modal">Select</button>
+                        <button type="button" class="action-btn preview-btn" data-modal="<?= $type ?>PreviewModal">Preview</button>
                         <span id="<?= $type ?>Count" class="count-badge">0</span>
                     </div>
                 </div>
                 <?php endif; endforeach; ?>
 
-                <!-- Hidden inputs to store selections (only for available sections) -->
+                <!-- Hidden inputs to store selections -->
                 <?php if ($tool_counts['people'] > 0): ?>
                 <input type="hidden" name="people[]" id="hiddenPeople">
                 <?php endif; ?>
@@ -529,11 +541,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
 
-        <!-- Modals (only shown if items exist) -->
+        <!-- Modals -->
         <?php if ($tool_counts['people'] > 0): ?>
         <div id="peopleModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('peopleModal')">✕</div>
+                <div class="modal-close" data-modal="peopleModal">✕</div>
                 <h2 class="section-title">Select People You Interact With</h2>
                 <input type="text" id="peopleSearch" class="search-input" placeholder="Search people..." onkeyup="searchItems('people')">
                 <div class="checkbox-grid" id="peopleList">
@@ -544,7 +556,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div id="peoplePreviewModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('peoplePreviewModal')">✕</div>
+                <div class="modal-close" data-modal="peoplePreviewModal">✕</div>
                 <h2 class="section-title">Selected People</h2>
                 <div id="peoplePreviewList" class="checkbox-grid"></div>
             </div>
@@ -554,27 +566,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($tool_counts['software'] > 0): ?>
         <div id="softwareModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('softwareModal')">✕</div>
+                <div class="modal-close" data-modal="softwareModal">✕</div>
                 <h2 class="section-title">Select Software Tools</h2>
                 <input type="text" id="softwareSearch" class="search-input" placeholder="Search software..." onkeyup="searchItems('software')">
                 <div class="checkbox-grid" id="softwareList">
-                    <?php
-                    $stmt = $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'software'");
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $checked = in_array($row['tool_id'], $_SESSION['selected_tools'] ?? []) ? 'checked' : '';
-                        echo "<label class='checkbox-item'>";
-                        echo "<input type='checkbox' name='software[]' value='{$row['tool_id']}' $checked onchange='updateSelected(\"software\", \"{$row['tool_name']}\")'>";
-                        echo htmlspecialchars($row['tool_name']);
-                        echo "</label>";
-                    }
-                    ?>
+                    <!-- Populated dynamically via JavaScript -->
                 </div>
             </div>
         </div>
 
         <div id="softwarePreviewModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('softwarePreviewModal')">✕</div>
+                <div class="modal-close" data-modal="softwarePreviewModal">✕</div>
                 <h2 class="section-title">Selected Software</h2>
                 <div id="softwarePreviewList" class="checkbox-grid"></div>
             </div>
@@ -584,27 +587,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($tool_counts['hardware'] > 0): ?>
         <div id="hardwareModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('hardwareModal')">✕</div>
+                <div class="modal-close" data-modal="hardwareModal">✕</div>
                 <h2 class="section-title">Select Hardware Tools</h2>
                 <input type="text" id="hardwareSearch" class="search-input" placeholder="Search hardware..." onkeyup="searchItems('hardware')">
                 <div class="checkbox-grid" id="hardwareList">
-                    <?php
-                    $stmt = $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'hardware'");
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $checked = in_array($row['tool_id'], $_SESSION['selected_tools'] ?? []) ? 'checked' : '';
-                        echo "<label class='checkbox-item'>";
-                        echo "<input type='checkbox' name='hardware[]' value='{$row['tool_id']}' $checked onchange='updateSelected(\"hardware\", \"{$row['tool_name']}\")'>";
-                        echo htmlspecialchars($row['tool_name']);
-                        echo "</label>";
-                    }
-                    ?>
+                    <!-- Populated dynamically via JavaScript -->
                 </div>
             </div>
         </div>
 
         <div id="hardwarePreviewModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('hardwarePreviewModal')">✕</div>
+                <div class="modal-close" data-modal="hardwarePreviewModal">✕</div>
                 <h2 class="section-title">Selected Hardware</h2>
                 <div id="hardwarePreviewList" class="checkbox-grid"></div>
             </div>
@@ -614,27 +608,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($tool_counts['analog'] > 0): ?>
         <div id="analogModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('analogModal')">✕</div>
+                <div class="modal-close" data-modal="analogModal">✕</div>
                 <h2 class="section-title">Select Analog Tools</h2>
                 <input type="text" id="analogSearch" class="search-input" placeholder="Search analog tools..." onkeyup="searchItems('analog')">
                 <div class="checkbox-grid" id="analogList">
-                    <?php
-                    $stmt = $pdo->query("SELECT tool_id, tool_name FROM tools WHERE tool_type = 'analog'");
-                    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                        $checked = in_array($row['tool_id'], $_SESSION['selected_tools'] ?? []) ? 'checked' : '';
-                        echo "<label class='checkbox-item'>";
-                        echo "<input type='checkbox' name='analog[]' value='{$row['tool_id']}' $checked onchange='updateSelected(\"analog\", \"{$row['tool_name']}\")'>";
-                        echo htmlspecialchars($row['tool_name']);
-                        echo "</label>";
-                    }
-                    ?>
+                    <!-- Populated dynamically via JavaScript -->
                 </div>
             </div>
         </div>
 
         <div id="analogPreviewModal" class="modal">
             <div class="modal-content">
-                <div class="modal-close" onclick="closeModal('analogPreviewModal')">✕</div>
+                <div class="modal-close" data-modal="analogPreviewModal">✕</div>
                 <h2 class="section-title">Selected Analog Tools</h2>
                 <div id="analogPreviewList" class="checkbox-grid"></div>
             </div>
@@ -643,125 +628,211 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        // Store all users in a JavaScript array for dynamic filtering
-        const allUsers = <?php echo json_encode($users); ?>;
-        const selectedPeople = <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>;
+    // Pass PHP data to JavaScript
+    const allUsers = <?php echo json_encode($users); ?>;
+    const allTools = <?php echo json_encode($all_tools); ?>;
+    const toolCounts = <?php echo json_encode($tool_counts); ?>;
+    const userPeople = <?php
+        $stmt = $pdo->query("SELECT up.user_id, up.person_id, CONCAT(u.first_name, ' ', u.last_name) AS person_name 
+                             FROM user_people up 
+                             JOIN users u ON up.person_id = u.user_id");
+        $userPeople = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $userPeople[$row['user_id']][] = $row['person_id'];
+        }
+        echo json_encode($userPeople);
+    ?>;
+    const userTools = <?php
+        $stmt = $pdo->query("SELECT ut.user_id, t.tool_id, t.tool_name, t.tool_type 
+                             FROM user_tools ut 
+                             JOIN tools t ON ut.tool_id = t.tool_id ORDER BY t.tool_name");
+        $userTools = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $userTools[$row['user_id']][] = $row['tool_id'];
+        }
+        echo json_encode($userTools);
+    ?>;
+    const sessionSelectedPeople = <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>;
+    const sessionSelectedTools = <?php echo json_encode($_SESSION['selected_tools'] ?? []); ?>;
 
-        // Function to update the people list in the modal based on the selected user_id
-        function updatePeopleList() {
-            const userIdSelect = document.getElementById('user_id');
-            const peopleList = document.getElementById('peopleList');
-            const selectedUserId = userIdSelect.value;
+    // In-memory storage for current selections
+    let currentSelectedPeople = [...sessionSelectedPeople];
+    let currentSelectedTools = [...sessionSelectedTools];
 
-            // Clear the current list
-            peopleList.innerHTML = '';
+    function updateLists() {
+        const userId = document.getElementById('user_id').value;
+        // Only update lists if their corresponding elements exist (based on toolCounts)
+        if (toolCounts.people > 0) updatePeopleList(userId);
+        if (toolCounts.software > 0) updateToolList('software', userId);
+        if (toolCounts.hardware > 0) updateToolList('hardware', userId);
+        if (toolCounts.analog > 0) updateToolList('analog', userId);
+    }
 
-            // Filter out the selected user and populate the list
-            const filteredUsers = allUsers.filter(user => user.user_id != selectedUserId);
-            filteredUsers.forEach(user => {
-                const checked = selectedPeople.includes(user.user_id.toString()) ? 'checked' : '';
+    function updatePeopleList(userId) {
+        const peopleList = document.getElementById('peopleList');
+        if (!peopleList) {
+            console.error("peopleList element not found");
+            return;
+        }
+        peopleList.innerHTML = '';
+
+        if (!userId) {
+            peopleList.innerHTML = '<p class="text-gray-500 col-span-full text-center">Select a user first.</p>';
+            updateSelected('people', '');
+            return;
+        }
+
+        allUsers.forEach(person => {
+            if (person.user_id.toString() !== userId.toString()) { // Exclude the selected user
+                const isPreSelected = userPeople[userId] && userPeople[userId].includes(person.user_id);
+                const isSelected = currentSelectedPeople.includes(person.user_id.toString());
+                const checked = isSelected || (!currentSelectedPeople.length && isPreSelected) ? 'checked' : '';
                 const label = document.createElement('label');
                 label.className = 'checkbox-item';
                 label.innerHTML = `
-                    <input type="checkbox" name="people[]" value="${user.user_id}" ${checked} onchange='updateSelected("people", "${user.first_name} ${user.last_name}")'>
-                    ${user.first_name} ${user.last_name}
+                    <input type="checkbox" name="people[]" value="${person.user_id}" ${checked} onchange="updateCurrentSelections('people', '${person.user_id}', this.checked)">
+                    ${person.first_name} ${person.last_name}
                 `;
                 peopleList.appendChild(label);
-            });
-
-            // Reapply search filter if a search term exists
-            searchItems('people');
-        }
-
-        function openModal(modalId) {
-            if (modalId === 'peopleModal') {
-                const userIdSelect = document.getElementById('user_id');
-                if (!userIdSelect.value) {
-                    alert('Please select a user in "Who Are You?" before selecting people.');
-                    return;
-                }
-                updatePeopleList(); // Update the people list when opening the modal
             }
-            document.getElementById(modalId).style.display = 'flex';
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        function searchItems(type) {
-            const searchInput = document.getElementById(`${type}Search`).value.toLowerCase();
-            const items = document.querySelectorAll(`#${type}List .checkbox-item`);
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(searchInput) ? 'flex' : 'none';
-            });
-        }
-
-        const selectedItems = {
-            people: <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>,
-            software: <?php echo json_encode(array_filter($_SESSION['selected_tools'] ?? [], function($id) use ($pdo) {
-                $stmt = $pdo->query("SELECT tool_type FROM tools WHERE tool_id = $id");
-                return $stmt->fetchColumn() === 'software';
-            })); ?>,
-            hardware: <?php echo json_encode(array_filter($_SESSION['selected_tools'] ?? [], function($id) use ($pdo) {
-                $stmt = $pdo->query("SELECT tool_type FROM tools WHERE tool_id = $id");
-                return $stmt->fetchColumn() === 'hardware';
-            })); ?>,
-            analog: <?php echo json_encode(array_filter($_SESSION['selected_tools'] ?? [], function($id) use ($pdo) {
-                $stmt = $pdo->query("SELECT tool_type FROM tools WHERE tool_id = $id");
-                return $stmt->fetchColumn() === 'analog';
-            })); ?>
-        };
-
-        window.addEventListener('load', () => {
-            <?php foreach ($sections as $type => $title): ?>
-                <?php if ($tool_counts[$type] > 0): ?>
-                    updateSelected('<?= $type ?>', '');
-                <?php endif; ?>
-            <?php endforeach; ?>
         });
 
-        function updateSelected(type, itemText) {
-            const checkboxes = document.querySelectorAll(`#${type}List input[type="checkbox"]:checked`);
-            const selected = Array.from(checkboxes).map(cb => ({
-                id: cb.value,
-                text: cb.parentElement.textContent.trim()
-            }));
-            
-            // Update the count
-            const countContainer = document.getElementById(`${type}Count`);
-            countContainer.textContent = `${selected.length}`;
-            
-            // Update the preview
-            const previewList = document.getElementById(`${type}PreviewList`);
-            previewList.innerHTML = selected.length > 0
-                ? selected.map(item => `<div class="checkbox-item">${item.text}</div>`).join('')
-                : '<p class="text-gray-500 col-span-full text-center">No items selected</p>';
+        searchItems('people');
+        updateSelected('people', '');
+    }
 
-            // Update the hidden input with selected IDs
-            const hiddenInput = document.getElementById(`hidden${type.charAt(0).toUpperCase() + type.slice(1)}`);
-            hiddenInput.value = selected.map(item => item.id).join(','); // Store as comma-separated string
+    function updateToolList(type, userId) {
+        const toolList = document.getElementById(`${type}List`);
+        if (!toolList) {
+            console.error(`${type}List element not found`);
+            return;
+        }
+        toolList.innerHTML = '';
 
-            // Update selectedPeople for people type to keep track of selections
-            if (type === 'people') {
-                selectedItems.people = selected.map(item => item.id);
-            }
+        if (!userId) {
+            toolList.innerHTML = `<p class="text-gray-500 col-span-full text-center">Select a user first.</p>`;
+            updateSelected(type, '');
+            return;
         }
 
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                const modals = document.querySelectorAll('.modal');
-                modals.forEach(modal => modal.style.display = 'none');
+        allTools[type].forEach(tool => {
+            const isPreSelected = userTools[userId] && userTools[userId].includes(tool.tool_id);
+            const isSelected = currentSelectedTools.includes(tool.tool_id.toString());
+            const checked = isSelected || (!currentSelectedTools.length && isPreSelected) ? 'checked' : '';
+            const label = document.createElement('label');
+            label.className = 'checkbox-item';
+            label.innerHTML = `
+                <input type="checkbox" name="${type}[]" value="${tool.tool_id}" ${checked} onchange="updateCurrentSelections('${type}', '${tool.tool_id}', this.checked)">
+                ${tool.tool_name}
+            `;
+            toolList.appendChild(label);
+        });
+
+        searchItems(type);
+        updateSelected(type, '');
+    }
+
+    function updateCurrentSelections(type, id, isChecked) {
+        if (type === 'people') {
+            if (isChecked) {
+                if (!currentSelectedPeople.includes(id)) currentSelectedPeople.push(id);
+            } else {
+                currentSelectedPeople = currentSelectedPeople.filter(item => item !== id);
             }
-        };
+        } else {
+            if (isChecked) {
+                if (!currentSelectedTools.includes(id)) currentSelectedTools.push(id);
+            } else {
+                currentSelectedTools = currentSelectedTools.filter(item => item !== id);
+            }
+        }
+        updateSelected(type, '');
+    }
 
-        // Update the people list whenever the user_id selection changes
-        document.getElementById('user_id').addEventListener('change', updatePeopleList);
+    function openModal(modalId) {
+        const userId = document.getElementById('user_id').value;
+        if (!userId) {
+            alert('Please select a user in "Who Are You?" before proceeding.');
+            return;
+        }
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+            updateLists(); // Refresh lists with current selections
+        } else {
+            console.error(`Modal with ID '${modalId}' not found`);
+        }
+    }
 
-        document.getElementById('surveyForm').onsubmit = function(e) {
-            return true; // Allow form submission
-        };
-    </script>
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    function searchItems(type) {
+        const searchInput = document.getElementById(`${type}Search`);
+        if (!searchInput) return; // Skip if search input doesn't exist
+        const query = searchInput.value.toLowerCase();
+        const items = document.querySelectorAll(`#${type}List .checkbox-item`);
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            item.style.display = text.includes(query) ? 'flex' : 'none';
+        });
+    }
+
+    function updateSelected(type, itemText) {
+        const hiddenInput = document.getElementById(`hidden${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        if (!hiddenInput) return; // Skip if hidden input doesn't exist
+
+        const checkboxes = document.querySelectorAll(`#${type}List input[type="checkbox"]:checked`);
+        const selected = Array.from(checkboxes).map(cb => ({
+            id: cb.value,
+            text: cb.parentElement.textContent.trim()
+        }));
+
+        const countContainer = document.getElementById(`${type}Count`);
+        countContainer.textContent = `${selected.length}`;
+
+        const previewList = document.getElementById(`${type}PreviewList`);
+        previewList.innerHTML = selected.length > 0
+            ? selected.map(item => `<div class="checkbox-item">${item.text}</div>`).join('')
+            : '<p class="text-gray-500 col-span-full text-center">No items selected</p>';
+
+        hiddenInput.value = selected.map(item => item.id).join(',');
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        const userIdSelect = document.getElementById('user_id');
+        userIdSelect.addEventListener('change', updateLists);
+
+        const buttons = document.querySelectorAll('.action-btn');
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                const modalId = button.getAttribute('data-modal');
+                if (modalId) openModal(modalId);
+            });
+        });
+
+        const closeButtons = document.querySelectorAll('.modal-close');
+        closeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const modalId = button.getAttribute('data-modal');
+                if (modalId) closeModal(modalId);
+            });
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target.classList.contains('modal')) {
+                document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+            }
+        });
+
+        const userId = userIdSelect.value;
+        if (userId) updateLists();
+    });
+</script>
 </body>
 </html>
