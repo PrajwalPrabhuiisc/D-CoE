@@ -667,246 +667,260 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <?php endif; ?>
     </div>
-
-    <script>
-    // Pass PHP data to JavaScript
-    const allUsers = <?php echo json_encode($users); ?>;
-    const allTools = <?php echo json_encode($all_tools); ?>;
-    const toolCounts = <?php echo json_encode($tool_counts); ?>;
-    const userPeople = <?php
-        $stmt = $pdo->query("SELECT up.user_id, up.person_id, CONCAT(u.first_name, ' ', u.last_name) AS person_name 
-                             FROM user_people up 
-                             JOIN users u ON up.person_id = u.user_id");
-        $userPeople = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $userPeople[$row['user_id']][] = $row['person_id'];
-        }
-        echo json_encode($userPeople);
-    ?>;
-    const userTools = <?php
-        $stmt = $pdo->query("SELECT ut.user_id, t.tool_id, t.tool_name, t.tool_type 
-                             FROM user_tools ut 
-                             JOIN tools t ON ut.tool_id = t.tool_id ORDER BY t.tool_name");
-        $userTools = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $userTools[$row['user_id']][] = $row['tool_id'];
-        }
-        echo json_encode($userTools);
-    ?>;
-    const sessionSelectedPeople = <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>;
-    const sessionSelectedTools = <?php echo json_encode($_SESSION['selected_tools'] ?? []); ?>;
-
-    // In-memory storage for current selections, initialized with session data or empty
-    let currentSelectedPeople = [...sessionSelectedPeople];
-    let currentSelectedTools = [...sessionSelectedTools];
-
-    function updateLists() {
-        const userId = document.getElementById('user_id').value;
-        if (toolCounts.people > 0) updatePeopleList(userId);
-        if (toolCounts.software > 0) updateToolList('software', userId);
-        if (toolCounts.hardware > 0) updateToolList('hardware', userId);
-        if (toolCounts.analog > 0) updateToolList('analog', userId);
+<script>
+// Pass PHP data to JavaScript
+const allUsers = <?php echo json_encode($users); ?>;
+const allTools = <?php echo json_encode($all_tools); ?>;
+const toolCounts = <?php echo json_encode($tool_counts); ?>;
+const userPeople = <?php
+    $stmt = $pdo->query("SELECT up.user_id, up.person_id, CONCAT(u.first_name, ' ', u.last_name) AS person_name 
+                         FROM user_people up 
+                         JOIN users u ON up.person_id = u.user_id");
+    $userPeople = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $userPeople[$row['user_id']][] = $row['person_id'];
     }
+    echo json_encode($userPeople);
+?>;
+const userTools = <?php
+    $stmt = $pdo->query("SELECT ut.user_id, t.tool_id, t.tool_name, t.tool_type 
+                         FROM user_tools ut 
+                         JOIN tools t ON ut.tool_id = t.tool_id ORDER BY t.tool_name");
+    $userTools = [];
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $userTools[$row['user_id']][] = $row['tool_id'];
+    }
+    echo json_encode($userTools);
+?>;
+const sessionSelectedPeople = <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>;
+const sessionSelectedTools = <?php echo json_encode($_SESSION['selected_tools'] ?? []); ?>;
 
-    function updatePeopleList(userId) {
-        const peopleList = document.getElementById('peopleList');
-        if (!peopleList) {
-            console.error("peopleList element not found");
-            return;
-        }
-        peopleList.innerHTML = '';
+// In-memory storage for current selections, initialized with session data or empty
+let currentSelectedPeople = [...sessionSelectedPeople];
+let currentSelectedTools = [...sessionSelectedTools];
 
-        if (!userId) {
-            peopleList.innerHTML = '<p class="text-gray-500 col-span-full text-center">Select a user first.</p>';
-            updateSelected('people', '');
-            return;
-        }
+function updateLists() {
+    const userId = document.getElementById('user_id').value;
+    if (!userId) {
+        // Clear all lists if no user is selected
+        if (toolCounts.people > 0) updatePeopleList('');
+        if (toolCounts.software > 0) updateToolList('software', '');
+        if (toolCounts.hardware > 0) updateToolList('hardware', '');
+        if (toolCounts.analog > 0) updateToolList('analog', '');
+        return;
+    }
+    // Update lists with current selections, not resetting unless explicitly requested
+    if (toolCounts.people > 0) updatePeopleList(userId);
+    if (toolCounts.software > 0) updateToolList('software', userId);
+    if (toolCounts.hardware > 0) updateToolList('hardware', userId);
+    if (toolCounts.analog > 0) updateToolList('analog', userId);
+}
 
-        const defaultPeople = userPeople[userId] || [];
-        allUsers.forEach(person => {
-            if (person.user_id.toString() !== userId.toString()) { // Exclude the selected user
-                const isDefault = defaultPeople.includes(person.user_id);
-                const isSelected = currentSelectedPeople.includes(person.user_id.toString());
-                // Use current selection if it exists; otherwise, fall back to default
-                const checked = isSelected || (currentSelectedPeople.length === 0 && isDefault) ? 'checked' : '';
-                const label = document.createElement('label');
-                label.className = 'checkbox-item';
-                label.innerHTML = `
-                    <input type="checkbox" name="people[]" value="${person.user_id}" ${checked} onchange="updateCurrentSelections('people', '${person.user_id}', this.checked)">
-                    ${person.first_name} ${person.last_name}
-                `;
-                peopleList.appendChild(label);
-            }
-        });
+function updatePeopleList(userId) {
+    const peopleList = document.getElementById('peopleList');
+    if (!peopleList) {
+        console.error("peopleList element not found");
+        return;
+    }
+    peopleList.innerHTML = '';
 
-        searchItems('people');
+    if (!userId) {
+        peopleList.innerHTML = '<p class="text-gray-500 col-span-full text-center">Select a user first.</p>';
         updateSelected('people', '');
+        return;
     }
 
-    function updateToolList(type, userId) {
-        const toolList = document.getElementById(`${type}List`);
-        if (!toolList) {
-            console.error(`${type}List element not found`);
-            return;
-        }
-        toolList.innerHTML = '';
-
-        if (!userId) {
-            toolList.innerHTML = `<p class="text-gray-500 col-span-full text-center">Select a user first.</p>`;
-            updateSelected(type, '');
-            return;
-        }
-
-        const defaultTools = userTools[userId] || [];
-        allTools[type].forEach(tool => {
-            const isDefault = defaultTools.includes(tool.tool_id);
-            const isSelected = currentSelectedTools.includes(tool.tool_id.toString());
-            // Use current selection if it exists; otherwise, fall back to default
-            const checked = isSelected || (currentSelectedTools.length === 0 && isDefault) ? 'checked' : '';
+    const defaultPeople = userPeople[userId] || [];
+    allUsers.forEach(person => {
+        if (person.user_id.toString() !== userId.toString()) { // Exclude the selected user
+            // Always prioritize current selections over defaults
+            const isSelected = currentSelectedPeople.includes(person.user_id.toString());
+            const checked = isSelected ? 'checked' : '';
             const label = document.createElement('label');
             label.className = 'checkbox-item';
             label.innerHTML = `
-                <input type="checkbox" name="${type}[]" value="${tool.tool_id}" ${checked} onchange="updateCurrentSelections('${type}', '${tool.tool_id}', this.checked)">
-                ${tool.tool_name}
+                <input type="checkbox" name="people[]" value="${person.user_id}" ${checked} onchange="updateCurrentSelections('people', '${person.user_id}', this.checked)">
+                ${person.first_name} ${person.last_name}
             `;
-            toolList.appendChild(label);
-        });
-
-        searchItems(type);
-        updateSelected(type, '');
-    }
-
-    function updateCurrentSelections(type, id, isChecked) {
-        if (type === 'people') {
-            if (isChecked) {
-                if (!currentSelectedPeople.includes(id)) currentSelectedPeople.push(id);
-            } else {
-                currentSelectedPeople = currentSelectedPeople.filter(item => item !== id);
-            }
-        } else {
-            if (isChecked) {
-                if (!currentSelectedTools.includes(id)) currentSelectedTools.push(id);
-            } else {
-                currentSelectedTools = currentSelectedTools.filter(item => item !== id);
-            }
+            peopleList.appendChild(label);
         }
-        updateSelected(type, '');
-    }
-
-    function resetToDefault(type) {
-        const userId = document.getElementById('user_id').value;
-        if (!userId) return;
-
-        if (type === 'people') {
-            currentSelectedPeople = (userPeople[userId] || []).map(String);
-            updatePeopleList(userId);
-        } else {
-            const defaultTools = (userTools[userId] || []).filter(id => 
-                allTools[type].some(tool => tool.tool_id === id)
-            ).map(String);
-            currentSelectedTools = currentSelectedTools.filter(id => 
-                !allTools[type].some(tool => tool.tool_id.toString() === id)
-            ).concat(defaultTools.filter(id => !currentSelectedTools.includes(id)));
-            updateToolList(type, userId);
-        }
-    }
-
-    function clearSelections(type) {
-        if (type === 'people') {
-            currentSelectedPeople = [];
-            updatePeopleList(document.getElementById('user_id').value);
-        } else {
-            currentSelectedTools = currentSelectedTools.filter(id => 
-                !allTools[type].some(tool => tool.tool_id.toString() === id)
-            );
-            updateToolList(type, document.getElementById('user_id').value);
-        }
-    }
-
-    function openModal(modalId) {
-        const userId = document.getElementById('user_id').value;
-        if (!userId) {
-            alert('Please select a user in "Who Are You?" before proceeding.');
-            return;
-        }
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'flex';
-            updateLists(); // Refresh lists with current selections
-        } else {
-            console.error(`Modal with ID '${modalId}' not found`);
-        }
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    function searchItems(type) {
-        const searchInput = document.getElementById(`${type}Search`);
-        if (!searchInput) return;
-        const query = searchInput.value.toLowerCase();
-        const items = document.querySelectorAll(`#${type}List .checkbox-item`);
-        items.forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(query) ? 'flex' : 'none';
-        });
-    }
-
-    function updateSelected(type, itemText) {
-        const hiddenInput = document.getElementById(`hidden${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        if (!hiddenInput) return;
-
-        const checkboxes = document.querySelectorAll(`#${type}List input[type="checkbox"]:checked`);
-        const selected = Array.from(checkboxes).map(cb => ({
-            id: cb.value,
-            text: cb.parentElement.textContent.trim()
-        }));
-
-        const countContainer = document.getElementById(`${type}Count`);
-        countContainer.textContent = `${selected.length}`;
-
-        const previewList = document.getElementById(`${type}PreviewList`);
-        previewList.innerHTML = selected.length > 0
-            ? selected.map(item => `<div class="checkbox-item">${item.text}</div>`).join('')
-            : '<p class="text-gray-500 col-span-full text-center">No items selected</p>';
-
-        hiddenInput.value = selected.map(item => item.id).join(',');
-    }
-
-    // Event Listeners
-    document.addEventListener('DOMContentLoaded', () => {
-        const userIdSelect = document.getElementById('user_id');
-        userIdSelect.addEventListener('change', updateLists);
-
-        const buttons = document.querySelectorAll('.action-btn');
-        buttons.forEach(button => {
-            button.addEventListener('click', () => {
-                const modalId = button.getAttribute('data-modal');
-                if (modalId) openModal(modalId);
-            });
-        });
-
-        const closeButtons = document.querySelectorAll('.modal-close');
-        closeButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const modalId = button.getAttribute('data-modal');
-                if (modalId) closeModal(modalId);
-            });
-        });
-
-        window.addEventListener('click', (event) => {
-            if (event.target.classList.contains('modal')) {
-                document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
-            }
-        });
-
-        const userId = userIdSelect.value;
-        if (userId) updateLists();
     });
-    </script>
+
+    searchItems('people');
+    updateSelected('people', '');
+}
+
+function updateToolList(type, userId) {
+    const toolList = document.getElementById(`${type}List`);
+    if (!toolList) {
+        console.error(`${type}List element not found`);
+        return;
+    }
+    toolList.innerHTML = '';
+
+    if (!userId) {
+        toolList.innerHTML = `<p class="text-gray-500 col-span-full text-center">Select a user first.</p>`;
+        updateSelected(type, '');
+        return;
+    }
+
+    allTools[type].forEach(tool => {
+        // Always prioritize current selections over defaults
+        const isSelected = currentSelectedTools.includes(tool.tool_id.toString());
+        const checked = isSelected ? 'checked' : '';
+        const label = document.createElement('label');
+        label.className = 'checkbox-item';
+        label.innerHTML = `
+            <input type="checkbox" name="${type}[]" value="${tool.tool_id}" ${checked} onchange="updateCurrentSelections('${type}', '${tool.tool_id}', this.checked)">
+            ${tool.tool_name}
+        `;
+        toolList.appendChild(label);
+    });
+
+    searchItems(type);
+    updateSelected(type, '');
+}
+
+function updateCurrentSelections(type, id, isChecked) {
+    if (type === 'people') {
+        if (isChecked) {
+            if (!currentSelectedPeople.includes(id)) currentSelectedPeople.push(id);
+        } else {
+            currentSelectedPeople = currentSelectedPeople.filter(item => item !== id);
+        }
+    } else {
+        if (isChecked) {
+            if (!currentSelectedTools.includes(id)) currentSelectedTools.push(id);
+        } else {
+            currentSelectedTools = currentSelectedTools.filter(item => item !== id);
+        }
+    }
+    updateSelected(type, '');
+}
+
+function resetToDefault(type) {
+    const userId = document.getElementById('user_id').value;
+    if (!userId) return;
+
+    if (type === 'people') {
+        currentSelectedPeople = (userPeople[userId] || []).map(String);
+        updatePeopleList(userId);
+    } else {
+        const defaultTools = (userTools[userId] || []).filter(id => 
+            allTools[type].some(tool => tool.tool_id === id)
+        ).map(String);
+        currentSelectedTools = currentSelectedTools.filter(id => 
+            !allTools[type].some(tool => tool.tool_id.toString() === id)
+        ).concat(defaultTools.filter(id => !currentSelectedTools.includes(id)));
+        updateToolList(type, userId);
+    }
+}
+
+function clearSelections(type) {
+    if (type === 'people') {
+        currentSelectedPeople = [];
+        updatePeopleList(document.getElementById('user_id').value);
+    } else {
+        currentSelectedTools = currentSelectedTools.filter(id => 
+            !allTools[type].some(tool => tool.tool_id.toString() === id)
+        );
+        updateToolList(type, document.getElementById('user_id').value);
+    }
+}
+
+function openModal(modalId) {
+    const userId = document.getElementById('user_id').value;
+    if (!userId) {
+        alert('Please select a user in "Who Are You?" before proceeding.');
+        return;
+    }
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        updateLists(); // Refresh lists with current selections
+    } else {
+        console.error(`Modal with ID '${modalId}' not found`);
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function searchItems(type) {
+    const searchInput = document.getElementById(`${type}Search`);
+    if (!searchInput) return;
+    const query = searchInput.value.toLowerCase();
+    const items = document.querySelectorAll(`#${type}List .checkbox-item`);
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        item.style.display = text.includes(query) ? 'flex' : 'none';
+    });
+}
+
+function updateSelected(type, itemText) {
+    const hiddenInput = document.getElementById(`hidden${type.charAt(0).toUpperCase() + type.slice(1)}`);
+    if (!hiddenInput) return;
+
+    const checkboxes = document.querySelectorAll(`#${type}List input[type="checkbox"]:checked`);
+    const selected = Array.from(checkboxes).map(cb => ({
+        id: cb.value,
+        text: cb.parentElement.textContent.trim()
+    }));
+
+    const countContainer = document.getElementById(`${type}Count`);
+    countContainer.textContent = `${selected.length}`;
+
+    const previewList = document.getElementById(`${type}PreviewList`);
+    previewList.innerHTML = selected.length > 0
+        ? selected.map(item => `<div class="checkbox-item">${item.text}</div>`).join('')
+        : '<p class="text-gray-500 col-span-full text-center">No items selected</p>';
+
+    hiddenInput.value = selected.map(item => item.id).join(',');
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const userIdSelect = document.getElementById('user_id');
+    userIdSelect.addEventListener('change', () => {
+        // Reset selections only if user changes, then update lists
+        const newUserId = userIdSelect.value;
+        if (newUserId && newUserId !== '<?php echo $_SESSION['user_id'] ?? ''; ?>') {
+            currentSelectedPeople = (userPeople[newUserId] || []).map(String);
+            currentSelectedTools = (userTools[newUserId] || []).map(String);
+        }
+        updateLists();
+    });
+
+    const buttons = document.querySelectorAll('.action-btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.getAttribute('data-modal');
+            if (modalId) openModal(modalId);
+        });
+    });
+
+    const closeButtons = document.querySelectorAll('.modal-close');
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const modalId = button.getAttribute('data-modal');
+            if (modalId) closeModal(modalId);
+        });
+    });
+
+    window.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal')) {
+            document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        }
+    });
+
+    const userId = userIdSelect.value;
+    if (userId) updateLists();
+});
+</script>
+    
 </body>
 </html>
