@@ -57,7 +57,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Survey MVP - Selections</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        /* Same CSS as previous version */
         :root {
             --primary: #6B48FF;
             --secondary: #00DDEB;
@@ -383,6 +382,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             height: 1.25rem;
         }
 
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: center;
+        }
+
+        .action-btn-modal {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .clear-btn {
+            background: #FF4D4D;
+            color: #FFFFFF;
+        }
+
+        .clear-btn:hover {
+            background: #E63939;
+        }
+
+        .reset-btn {
+            background: #FFB347;
+            color: #FFFFFF;
+        }
+
+        .reset-btn:hover {
+            background: #FF9900;
+        }
+
         @keyframes slideInLeft {
             from { transform: translateX(-100px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -541,15 +574,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </form>
         </div>
 
-        <!-- Modals -->
+        <!-- Modals with Reset and Clear Buttons -->
         <?php if ($tool_counts['people'] > 0): ?>
         <div id="peopleModal" class="modal">
             <div class="modal-content">
                 <div class="modal-close" data-modal="peopleModal">✕</div>
                 <h2 class="section-title">Select People You Interact With</h2>
                 <input type="text" id="peopleSearch" class="search-input" placeholder="Search people..." onkeyup="searchItems('people')">
-                <div class="checkbox-grid" id="peopleList">
-                    <!-- Populated dynamically via JavaScript -->
+                <div class="checkbox-grid" id="peopleList"></div>
+                <div class="modal-actions">
+                    <button type="button" class="action-btn-modal reset-btn" onclick="resetToDefault('people')">Reset to Default</button>
+                    <button type="button" class="action-btn-modal clear-btn" onclick="clearSelections('people')">Clear Selections</button>
                 </div>
             </div>
         </div>
@@ -569,8 +604,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="modal-close" data-modal="softwareModal">✕</div>
                 <h2 class="section-title">Select Software Tools</h2>
                 <input type="text" id="softwareSearch" class="search-input" placeholder="Search software..." onkeyup="searchItems('software')">
-                <div class="checkbox-grid" id="softwareList">
-                    <!-- Populated dynamically via JavaScript -->
+                <div class="checkbox-grid" id="softwareList"></div>
+                <div class="modal-actions">
+                    <button type="button" class="action-btn-modal reset-btn" onclick="resetToDefault('software')">Reset to Default</button>
+                    <button type="button" class="action-btn-modal clear-btn" onclick="clearSelections('software')">Clear Selections</button>
                 </div>
             </div>
         </div>
@@ -590,8 +627,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="modal-close" data-modal="hardwareModal">✕</div>
                 <h2 class="section-title">Select Hardware Tools</h2>
                 <input type="text" id="hardwareSearch" class="search-input" placeholder="Search hardware..." onkeyup="searchItems('hardware')">
-                <div class="checkbox-grid" id="hardwareList">
-                    <!-- Populated dynamically via JavaScript -->
+                <div class="checkbox-grid" id="hardwareList"></div>
+                <div class="modal-actions">
+                    <button type="button" class="action-btn-modal reset-btn" onclick="resetToDefault('hardware')">Reset to Default</button>
+                    <button type="button" class="action-btn-modal clear-btn" onclick="clearSelections('hardware')">Clear Selections</button>
                 </div>
             </div>
         </div>
@@ -611,8 +650,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="modal-close" data-modal="analogModal">✕</div>
                 <h2 class="section-title">Select Analog Tools</h2>
                 <input type="text" id="analogSearch" class="search-input" placeholder="Search analog tools..." onkeyup="searchItems('analog')">
-                <div class="checkbox-grid" id="analogList">
-                    <!-- Populated dynamically via JavaScript -->
+                <div class="checkbox-grid" id="analogList"></div>
+                <div class="modal-actions">
+                    <button type="button" class="action-btn-modal reset-btn" onclick="resetToDefault('analog')">Reset to Default</button>
+                    <button type="button" class="action-btn-modal clear-btn" onclick="clearSelections('analog')">Clear Selections</button>
                 </div>
             </div>
         </div>
@@ -655,13 +696,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     const sessionSelectedPeople = <?php echo json_encode($_SESSION['selected_people'] ?? []); ?>;
     const sessionSelectedTools = <?php echo json_encode($_SESSION['selected_tools'] ?? []); ?>;
 
-    // In-memory storage for current selections
+    // In-memory storage for current selections, initialized with session data or empty
     let currentSelectedPeople = [...sessionSelectedPeople];
     let currentSelectedTools = [...sessionSelectedTools];
 
     function updateLists() {
         const userId = document.getElementById('user_id').value;
-        // Only update lists if their corresponding elements exist (based on toolCounts)
         if (toolCounts.people > 0) updatePeopleList(userId);
         if (toolCounts.software > 0) updateToolList('software', userId);
         if (toolCounts.hardware > 0) updateToolList('hardware', userId);
@@ -682,11 +722,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return;
         }
 
+        const defaultPeople = userPeople[userId] || [];
         allUsers.forEach(person => {
             if (person.user_id.toString() !== userId.toString()) { // Exclude the selected user
-                const isPreSelected = userPeople[userId] && userPeople[userId].includes(person.user_id);
+                const isDefault = defaultPeople.includes(person.user_id);
                 const isSelected = currentSelectedPeople.includes(person.user_id.toString());
-                const checked = isSelected || (!currentSelectedPeople.length && isPreSelected) ? 'checked' : '';
+                // Use current selection if it exists; otherwise, fall back to default
+                const checked = isSelected || (currentSelectedPeople.length === 0 && isDefault) ? 'checked' : '';
                 const label = document.createElement('label');
                 label.className = 'checkbox-item';
                 label.innerHTML = `
@@ -715,10 +757,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             return;
         }
 
+        const defaultTools = userTools[userId] || [];
         allTools[type].forEach(tool => {
-            const isPreSelected = userTools[userId] && userTools[userId].includes(tool.tool_id);
+            const isDefault = defaultTools.includes(tool.tool_id);
             const isSelected = currentSelectedTools.includes(tool.tool_id.toString());
-            const checked = isSelected || (!currentSelectedTools.length && isPreSelected) ? 'checked' : '';
+            // Use current selection if it exists; otherwise, fall back to default
+            const checked = isSelected || (currentSelectedTools.length === 0 && isDefault) ? 'checked' : '';
             const label = document.createElement('label');
             label.className = 'checkbox-item';
             label.innerHTML = `
@@ -749,6 +793,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateSelected(type, '');
     }
 
+    function resetToDefault(type) {
+        const userId = document.getElementById('user_id').value;
+        if (!userId) return;
+
+        if (type === 'people') {
+            currentSelectedPeople = (userPeople[userId] || []).map(String);
+            updatePeopleList(userId);
+        } else {
+            const defaultTools = (userTools[userId] || []).filter(id => 
+                allTools[type].some(tool => tool.tool_id === id)
+            ).map(String);
+            currentSelectedTools = currentSelectedTools.filter(id => 
+                !allTools[type].some(tool => tool.tool_id.toString() === id)
+            ).concat(defaultTools.filter(id => !currentSelectedTools.includes(id)));
+            updateToolList(type, userId);
+        }
+    }
+
+    function clearSelections(type) {
+        if (type === 'people') {
+            currentSelectedPeople = [];
+            updatePeopleList(document.getElementById('user_id').value);
+        } else {
+            currentSelectedTools = currentSelectedTools.filter(id => 
+                !allTools[type].some(tool => tool.tool_id.toString() === id)
+            );
+            updateToolList(type, document.getElementById('user_id').value);
+        }
+    }
+
     function openModal(modalId) {
         const userId = document.getElementById('user_id').value;
         if (!userId) {
@@ -773,7 +847,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     function searchItems(type) {
         const searchInput = document.getElementById(`${type}Search`);
-        if (!searchInput) return; // Skip if search input doesn't exist
+        if (!searchInput) return;
         const query = searchInput.value.toLowerCase();
         const items = document.querySelectorAll(`#${type}List .checkbox-item`);
         items.forEach(item => {
@@ -784,7 +858,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     function updateSelected(type, itemText) {
         const hiddenInput = document.getElementById(`hidden${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        if (!hiddenInput) return; // Skip if hidden input doesn't exist
+        if (!hiddenInput) return;
 
         const checkboxes = document.querySelectorAll(`#${type}List input[type="checkbox"]:checked`);
         const selected = Array.from(checkboxes).map(cb => ({
@@ -833,6 +907,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const userId = userIdSelect.value;
         if (userId) updateLists();
     });
-</script>
+    </script>
 </body>
 </html>
