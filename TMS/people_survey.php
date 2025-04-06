@@ -3,20 +3,8 @@ session_start();
 require 'db_connect.php';
 require 'survey_navigation.php';
 
-// Process incoming POST data from index.php
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
-    // Merge new responses with existing ones in session (if any)
-    $_SESSION['responses'] = isset($_SESSION['responses']) 
-        ? array_merge($_SESSION['responses'], $_POST['response']) 
-        : $_POST['response'];
-
-    // Determine the next page dynamically
-    $nextPage = getNextSurveyPage($_SESSION['selected_people'], $_SESSION['selected_tools'], 'people');
-    header("Location: $nextPage");
-    exit();
-}
-
-$user_id = $_SESSION['user_id'] ?? null;
+// Ensure session data is valid
+$user_id = (int)($_SESSION['user_id'] ?? 0);
 $selected_people = $_SESSION['selected_people'] ?? [];
 
 if (!$user_id) {
@@ -29,19 +17,28 @@ $stmt = $pdo->prepare("SELECT first_name, last_name FROM users WHERE user_id = :
 $stmt->execute(['user_id' => $user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+if (!$user) {
+    header("Location: index.php");
+    exit();
+}
+
 // Fetch selected people details
 $selectedPeopleDetails = [];
+$validUserIds = $pdo->query("SELECT user_id FROM users")->fetchAll(PDO::FETCH_COLUMN);
 foreach ($selected_people as $personId) {
-    $stmt = $pdo->prepare("SELECT user_id, first_name, last_name FROM users WHERE user_id = :user_id");
-    $stmt->execute(['user_id' => $personId]);
-    if ($person = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $selectedPeopleDetails[] = $person;
+    $personId = (int)$personId;
+    if ($personId > 0 && in_array($personId, $validUserIds)) {
+        $stmt = $pdo->prepare("SELECT user_id, first_name, last_name FROM users WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $personId]);
+        if ($person = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $selectedPeopleDetails[] = $person;
+        }
     }
 }
 
-// If no people are selected, skip to the next page immediately
+// If no valid people are selected, skip to the next page
 if (empty($selectedPeopleDetails)) {
-    $nextPage = getNextSurveyPage($selected_people, $_SESSION['selected_tools'], 'people');
+    $nextPage = getNextSurveyPage($selected_people, $_SESSION['selected_tools'] ?? [], 'people');
     header("Location: $nextPage");
     exit();
 }
@@ -50,6 +47,60 @@ if (empty($selectedPeopleDetails)) {
 $questionsStmt = $pdo->query("SELECT question_id, question_text FROM questions WHERE category = 'human'");
 $peopleQuestions = $questionsStmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch question options
+$optionsStmt = $pdo->query("SELECT option_id, question_id, option_text FROM question_options");
+$options = $optionsStmt->fetchAll(PDO::FETCH_ASSOC);
+$questionOptions = [];
+foreach ($options as $option) {
+    $questionOptions[$option['question_id']][] = $option;
+}
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
+    // Log incoming POST data
+    error_log("POST response data: " . print_r($_POST['response'], true));
+
+    // Clear previous responses for this user and subjects to prevent duplicates
+    $placeholders = implode(',', array_fill(0, count($selectedPeopleDetails), '?'));
+    $subjectIds = array_column($selectedPeopleDetails, 'user_id');
+    $stmt = $pdo->prepare("DELETE FROM responses WHERE user_id = ? AND subject_id IN ($placeholders) AND subject_type = 'person'");
+    $stmt->execute(array_merge([$user_id], $subjectIds));
+    error_log("Cleared previous responses for user $user_id and subjects: " . implode(',', $subjectIds));
+
+    // Insert new responses
+    foreach ($_POST['response'] as $person_id => $questions) {
+        $person_id = (int)$person_id;
+        if ($person_id > 0 && in_array($person_id, $validUserIds) && in_array($person_id, $subjectIds)) {
+            foreach ($questions as $question_id => $option_id) {
+                $question_id = (int)$question_id;
+                $option_id = (int)$option_id;
+                if ($option_id > 0) { // Ensure a valid option is selected
+                    $stmt = $pdo->prepare("
+                        INSERT INTO responses (user_id, question_id, option_id, subject_id, subject_type)
+                        VALUES (:user_id, :question_id, :option_id, :subject_id, 'person')
+                        ON DUPLICATE KEY UPDATE option_id = :option_id
+                    ");
+                    $stmt->execute([
+                        'user_id' => $user_id,
+                        'question_id' => $question_id,
+                        'option_id' => $option_id,
+                        'subject_id' => $person_id
+                    ]);
+                    error_log("Inserted response: user_id=$user_id, question_id=$question_id, option_id=$option_id, subject_id=$person_id");
+                }
+            }
+        } else {
+            error_log("Skipped invalid person_id: $person_id");
+        }
+    }
+
+    // Clear session responses to prevent re-submission
+    unset($_SESSION['responses']);
+
+    $nextPage = getNextSurveyPage($selected_people, $_SESSION['selected_tools'] ?? [], 'people');
+    header("Location: $nextPage");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -227,13 +278,13 @@ $peopleQuestions = $questionsStmt->fetchAll(PDO::FETCH_ASSOC);
             position: sticky;
             left: 0;
             z-index: 5;
-            background: #E6E6FA; /* Opaque background to prevent overlap */
+            background: #E6E6FA;
             min-width: 200px;
         }
 
         .survey-table th:first-child {
             z-index: 15;
-            background: rgba(107, 72, 255, 1); /* Opaque background for top-left cell */
+            background: rgba(107, 72, 255, 1);
         }
 
         .survey-table th:not(:first-child),
@@ -419,12 +470,6 @@ $peopleQuestions = $questionsStmt->fetchAll(PDO::FETCH_ASSOC);
                     </svg>
                     Rate Hardware
                 </div>
-                <!-- <div class="sidebar-step">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Rate Analog
-                </div> -->
                 <div class="sidebar-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
