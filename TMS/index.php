@@ -1,7 +1,7 @@
 <?php
 session_start();
 require 'db_connect.php';
-require 'survey_navigation.php'; // Include the helper function
+require 'survey_navigation.php';
 
 // Fetch all users for the "Who Are You" dropdown
 $stmt = $pdo->query("SELECT user_id, first_name, last_name FROM users ORDER BY first_name, last_name");
@@ -24,26 +24,38 @@ $tool_counts = [
 
 // Handle form submission to store selections in session
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $_SESSION['user_id'] = $_POST['user_id'] ?? null;
-    
-    // Handle people selections
-    $_SESSION['selected_people'] = ($tool_counts['people'] > 0 && !empty($_POST['people']) && !empty($_POST['people'][0]))
+    $_SESSION['user_id'] = (int)($_POST['user_id'] ?? 0); // Respondent's ID, cast to int
+
+    // Get all valid user IDs for validation
+    $validUserIds = array_column($users, 'user_id');
+
+    // Handle people selections: only store what the respondent explicitly selects
+    $selected_people_raw = ($tool_counts['people'] > 0 && !empty($_POST['people']) && !empty($_POST['people'][0]))
         ? explode(',', $_POST['people'][0])
         : [];
-    
-    // Handle tool selections
-    $_SESSION['selected_tools'] = array_merge(
+    // Filter and ensure uniqueness
+    $selected_people_filtered = array_filter($selected_people_raw, function($id) use ($validUserIds) {
+        $id = (int)$id; // Cast to integer
+        return $id > 0 && in_array($id, $validUserIds); // Must be positive and exist in users table
+    });
+    $_SESSION['selected_people'] = array_unique($selected_people_filtered); // Remove duplicates
+
+    // Handle tool selections (similar filtering)
+    $selected_tools_raw = array_merge(
         ($tool_counts['software'] > 0 && !empty($_POST['software']) && !empty($_POST['software'][0])) ? explode(',', $_POST['software'][0]) : [],
         ($tool_counts['hardware'] > 0 && !empty($_POST['hardware']) && !empty($_POST['hardware'][0])) ? explode(',', $_POST['hardware'][0]) : [],
         ($tool_counts['analog'] > 0 && !empty($_POST['analog']) && !empty($_POST['analog'][0])) ? explode(',', $_POST['analog'][0]) : []
     );
+    $_SESSION['selected_tools'] = array_unique($selected_tools_raw); // Remove duplicates
 
-    // Debug: Log session data to verify
-    error_log("Session Data: " . print_r($_SESSION, true));
+    // Debug: Log raw and filtered data
+    error_log("Raw POST people: " . print_r($selected_people_raw, true));
+    error_log("Filtered selected_people: " . print_r($_SESSION['selected_people'], true));
+    error_log("Session Data for user {$_SESSION['user_id']}: " . print_r($_SESSION, true));
 
     // Determine the next page dynamically
     $nextPage = getNextSurveyPage($_SESSION['selected_people'], $_SESSION['selected_tools'], 'index');
-    error_log("Next Page: $nextPage");
+    error_log("Next Page for user {$_SESSION['user_id']}: $nextPage");
     header("Location: $nextPage");
     exit();
 }
@@ -921,6 +933,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (userId) updateLists();
 });
 </script>
-    
 </body>
 </html>
