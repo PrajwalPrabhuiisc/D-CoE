@@ -1,0 +1,334 @@
+:root {
+  --primary-color: #4361ee;
+  --primary-hover: #3a56d4;
+  --secondary-color: #4cc9f0;
+  --background-color: #f8f9fa;
+  --card-bg: #ffffff;
+  --text-color: #212529;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --success-color: #4ade80;
+  --warning-color: #fbbf24;
+  --danger-color: #f87171;
+  --border-radius: 8px;
+  --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  --table-header-bg: #f1f5ff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header Styles */
+.app-header {
+  background-color: var(--card-bg);
+  box-shadow: var(--box-shadow);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-header .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .app-header .container {
+      flex-direction: row;
+      justify-content: space-between;
+  }
+}
+
+.app-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.main-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-link {
+  color: var(--text-color);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius);
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  background-color: rgba(67, 97, 238, 0.1);
+}
+
+.nav-link.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Main Content */
+main {
+  flex: 1;
+  padding: 2rem 0;
+}
+
+/* Form Styles */
+.selection-panel {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--box-shadow);
+}
+
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .filter-form {
+      flex-direction: row;
+      align-items: flex-end;
+  }
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.form-select {
+  padding: 0.625rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+  font-family: inherit;
+  font-size: 1rem;
+  background-color: white;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+}
+
+.btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--border-radius);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+  background-color: var(--background-color);
+}
+
+/* Matrix Styles */
+.matrix-results {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 992px) {
+  .matrix-results {
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  }
+}
+
+.matrix-section {
+  background-color: var(--card-bg);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  box-shadow: var(--box-shadow);
+}
+
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.matrix-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.matrix-container {
+  padding: 1.5rem;
+  position: relative;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+.matrix-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.875rem;
+  background-color: var(--card-bg);
+}
+
+.matrix-table th,
+.matrix-table td {
+  padding: 0.75rem;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.matrix-table thead th {
+  background-color: var(--table-header-bg);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.matrix-table th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background-color: var(--table-header-bg);
+  z-index: 20;
+  min-width: 150px;
+}
+
+.matrix-table .corner-header {
+  background-color: var(--table-header-bg);
+  z-index: 30;
+  position: sticky;
+  top: 0;
+  left: 0;
+}
+
+.matrix-table tbody th {
+  font-weight: 500;
+  background-color: var(--table-header-bg);
+  position: sticky;
+  left: 0;
+  z-index: 20;
+}
+
+.matrix-table td {
+  background-color: var(--card-bg);
+  position: relative;
+  z-index: 5;
+}
+
+.data-cell {
+  transition: all 0.2s ease;
+}
+
+/* Heatmap intensity classes for 1-5 scale with distinct colors */
+.intensity-0 { background-color: #ffffff; } /* White for no response */
+.intensity-1 { background-color: #ffcccc; } /* Light red for 1 (low) */
+.intensity-2 { background-color: #fff3cd; } /* Light yellow for 2 */
+.intensity-3 { background-color: #cce5ff; } /* Light blue for 3 (neutral) */
+.intensity-4 { background-color: #ccebc5; } /* Light green for 4 */
+.intensity-5 { background-color: #b3ffb3; } /* Green for 5 (high) */
+
+/* Footer */
+.app-footer {
+  background-color: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  padding: 1.5rem 0;
+  margin-top: 2rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* For the matrix cells - red color scheme */
+.data-cell.intensity-0 {
+  background-color: #f5f5f5; /* Light gray for no response */
+  color: #888;
+}
+.data-cell.intensity-1 {
+  background-color: #ffebee; /* Very light red */
+  color: #333;
+}
+.data-cell.intensity-2 {
+  background-color: #ffcdd2; /* Light red */
+  color: #333;
+}
+.data-cell.intensity-3 {
+  background-color: #ef9a9a; /* Medium red */
+  color: #333;
+}
+.data-cell.intensity-4 {
+  background-color: #e57373; /* Dark red */
+  color: white;
+}
+.data-cell.intensity-5 {
+  background-color: #c62828; /* Very dark red */
+  color: white;
+}
