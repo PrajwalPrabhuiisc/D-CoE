@@ -465,50 +465,60 @@
             </div>
         </div>
 
-        <!-- Time Deviation Summary -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <i class="fas fa-clock"></i> Time Deviation Summary
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>User</th>
-                                        <th>Total Allocated Time (Hours)</th>
-                                        <th>Total Actual Time (Hours)</th>
-                                        <th>Average Deviation (Hours)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php
-                                    $stmt = $pdo->query("SELECT u.Username, 
-                                                        SUM(w.AllocatedTime) AS total_allocated, 
-                                                        SUM(w.ActualTime) AS total_actual,
-                                                        ROUND(AVG(COALESCE(w.ActualTime, 0) - w.AllocatedTime), 2) AS avg_deviation
-                                                        FROM WorkDiary w 
-                                                        JOIN Users u ON w.UserID = u.UserID 
-                                                        GROUP BY u.UserID, u.Username");
+ <!-- Time Deviation Summary -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-clock"></i> Time Deviation Summary
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Total Allocated Time (Hours)</th>
+                                <th>Total Actual Time (Hours)</th>
+                                <th>Average Deviation (Hours)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                            try {
+                                $stmt = $pdo->query("SELECT 
+                                    u.Username,
+                                    COALESCE(SUM(w.AllocatedTime), 0) AS total_allocated,
+                                    COALESCE(SUM(w.ActualTime), 0) AS total_actual,
+                                    ROUND(COALESCE(AVG(w.ActualTime - w.AllocatedTime), 0), 2) AS avg_deviation
+                                    FROM Users u
+                                    LEFT JOIN WorkDiary w ON w.UserID = u.UserID
+                                    GROUP BY u.UserID, u.Username
+                                    ORDER BY u.Username ASC");
+                                
+                                if ($stmt->rowCount() > 0) {
                                     while ($row = $stmt->fetch()) {
                                         echo "<tr>";
-                                        echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
-                                        echo "<td>{$row['total_allocated']}</td>";
-                                        echo "<td>" . ($row['total_actual'] ?? 'N/A') . "</td>";
-                                        echo "<td>{$row['avg_deviation']}</td>";
+                                        echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
+                                        echo "<td>" . number_format($row['total_allocated'], 2) . "</td>";
+                                        echo "<td>" . number_format($row['total_actual'], 2) . "</td>";
+                                        echo "<td>" . number_format($row['avg_deviation'], 2) . "</td>";
                                         echo "</tr>";
                                     }
-                                    ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                } else {
+                                    echo "<tr><td colspan='4' class='text-center'>No user data available</td></tr>";
+                                }
+                            } catch (PDOException $e) {
+                                echo "<tr><td colspan='4' class='text-center text-danger'>Error loading data: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                            }
+                            ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
