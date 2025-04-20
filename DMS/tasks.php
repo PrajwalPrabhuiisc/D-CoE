@@ -100,27 +100,59 @@
             padding: 20px;
         }
         
-        .table {
-            margin-bottom: 0;
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
         }
         
-        .table th {
+        .table {
+            width: 100%;
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table thead th {
             background-color: var(--light-color);
             font-weight: 600;
             color: var(--dark-color);
             border-top: none;
+            padding: 12px 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-clip: padding-box;
         }
         
-        .table td {
+        .table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .table tbody td {
+            padding: 12px 15px;
             vertical-align: middle;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        
+        .table tbody tr:nth-child(odd) {
+            background-color: #f9fbfd;
         }
         
         .status-badge {
-            padding: 3px 10px;
+            padding: 5px 12px;
             border-radius: 12px;
-            font-size: 0.7rem;
+            font-size: 0.8rem;
             font-weight: 500;
             text-transform: uppercase;
+            display: inline-block;
         }
         
         .status-active {
@@ -140,6 +172,9 @@
         
         .filter-container {
             margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .filter-btn {
@@ -150,6 +185,7 @@
             padding: 5px 12px;
             border-radius: 20px;
             transition: all 0.3s ease;
+            border: 1px solid #ddd;
         }
         
         .filter-btn:hover {
@@ -168,6 +204,24 @@
             padding: 30px;
             color: #777;
             font-style: italic;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+            }
+            .filter-container {
+                flex-direction: column;
+            }
+            .filter-btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -222,7 +276,7 @@
                         <div>
                             <i class="fas fa-tasks"></i> Tasks
                         </div>
-                        <div>
+                        <div class="filter-container">
                             <form id="filterForm" method="GET" class="d-inline">
                                 <button type="button" class="btn btn-sm btn-outline-secondary filter-btn active" data-status="all">All</button>
                                 <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-status="active">Active</button>
@@ -246,62 +300,93 @@
                                 </thead>
                                 <tbody>
                                     <?php
-                                    // Get filter status from GET parameter
+                                    $itemsPerPage = 20;
+                                    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+                                    $offset = ($page - 1) * $itemsPerPage;
+
                                     $statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all';
-                                    
-                                    // Prepare the SQL query based on the filter
+
                                     $sql = "SELECT p.TaskName, p.Status, u.Username, pr.ProjectName, p.StartDate 
                                             FROM ProjectTasks p 
                                             JOIN Users u ON p.OwnerID = u.UserID 
-                                            JOIN Projects pr ON p.ProjectID = pr.ProjectID ";
-                                    
-                                    // Add WHERE clause if a specific status is selected
+                                            JOIN Projects pr ON p.ProjectID = pr.ProjectID 
+                                            WHERE 1=1";
+
+                                    $params = [];
                                     if ($statusFilter != 'all') {
-                                        $sql .= "WHERE LOWER(p.Status) = :status ";
+                                        $sql .= " AND LOWER(p.Status) = :status";
+                                        $params[':status'] = strtolower($statusFilter);
                                     }
+
+                                    $sql .= " ORDER BY p.StartDate DESC";
                                     
-                                    $sql .= "ORDER BY p.StartDate DESC";
-                                    
+                                    $countSql = "SELECT COUNT(*) FROM ProjectTasks p WHERE 1=1";
+                                    if ($statusFilter != 'all') {
+                                        $countSql .= " AND LOWER(p.Status) = :status";
+                                    }
+                                    $countStmt = $pdo->prepare($countSql);
+                                    $countStmt->execute($params);
+                                    $totalTasks = $countStmt->fetchColumn();
+                                    $totalPages = ceil($totalTasks / $itemsPerPage);
+
+                                    $sql .= " LIMIT :limit OFFSET :offset";
                                     $stmt = $pdo->prepare($sql);
-                                    
-                                    // Bind parameters if needed
-                                    if ($statusFilter != 'all') {
-                                        $stmt->bindParam(':status', $statusFilter, PDO::PARAM_STR);
+                                    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
+                                    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                                    foreach ($params as $key => $value) {
+                                        $stmt->bindValue($key, $value, PDO::PARAM_STR);
                                     }
-                                    
                                     $stmt->execute();
                                     $rowCount = 0;
-                                    
-                                    while ($row = $stmt->fetch()) {
-                                        $rowCount++;
-                                        $statusClass = "";
-                                        switch (strtolower($row['Status'])) {
-                                            case 'active':
-                                                $statusClass = "status-active";
-                                                break;
-                                            case 'completed':
-                                                $statusClass = "status-completed";
-                                                break;
-                                            default:
-                                                $statusClass = "status-pending";
+
+                                    if ($stmt->rowCount() > 0) {
+                                        while ($row = $stmt->fetch()) {
+                                            $rowCount++;
+                                            $statusClass = "";
+                                            switch (strtolower($row['Status'])) {
+                                                case 'active':
+                                                    $statusClass = "status-active";
+                                                    break;
+                                                case 'completed':
+                                                    $statusClass = "status-completed";
+                                                    break;
+                                                default:
+                                                    $statusClass = "status-pending";
+                                            }
+                                            echo "<tr>";
+                                            echo "<td>{$row['TaskName']}</td>";
+                                            echo "<td><span class='status-badge {$statusClass}'>{$row['Status']}</span></td>";
+                                            echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
+                                            echo "<td>{$row['ProjectName']}</td>";
+                                            echo "<td>{$row['StartDate']}</td>";
+                                            echo "</tr>";
                                         }
-                                        echo "<tr>";
-                                        echo "<td>{$row['TaskName']}</td>";
-                                        echo "<td><span class='status-badge {$statusClass}'>{$row['Status']}</span></td>";
-                                        echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
-                                        echo "<td>{$row['ProjectName']}</td>";
-                                        echo "<td>{$row['StartDate']}</td>";
-                                        echo "</tr>";
-                                    }
-                                    
-                                    // Display a message if no results are found
-                                    if ($rowCount == 0) {
+                                    } else {
                                         echo "<tr><td colspan='5' class='no-results'>No tasks found for the selected status.</td></tr>";
                                     }
                                     ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($totalPages > 1): ?>
+                        <div class="pagination-container d-flex justify-content-center mt-3">
+                            <nav>
+                                <ul class="pagination">
+                                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page - 1; ?>&status=<?php echo urlencode($statusFilter); ?>">Previous</a>
+                                    </li>
+                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                            <a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo urlencode($statusFilter); ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page + 1; ?>&status=<?php echo urlencode($statusFilter); ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -310,17 +395,14 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Handle status filter buttons
         document.addEventListener('DOMContentLoaded', function() {
             const filterButtons = document.querySelectorAll('.filter-btn');
             const filterForm = document.getElementById('filterForm');
             const statusFilterInput = document.getElementById('statusFilter');
-            
-            // Get current status from URL parameter
+
             const urlParams = new URLSearchParams(window.location.search);
             const currentStatus = urlParams.get('status') || 'all';
-            
-            // Set the active button based on current status
+
             filterButtons.forEach(button => {
                 if (button.dataset.status === currentStatus) {
                     button.classList.add('active');
@@ -328,17 +410,11 @@
                     button.classList.remove('active');
                 }
             });
-            
-            // Add click event listeners to filter buttons
+
             filterButtons.forEach(button => {
                 button.addEventListener('click', function() {
-                    // Remove active class from all buttons
                     filterButtons.forEach(btn => btn.classList.remove('active'));
-                    
-                    // Add active class to clicked button
                     this.classList.add('active');
-                    
-                    // Set the status value and submit the form
                     statusFilterInput.value = this.dataset.status;
                     filterForm.submit();
                 });
