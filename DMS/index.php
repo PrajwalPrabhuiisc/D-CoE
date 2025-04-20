@@ -465,183 +465,184 @@
             </div>
         </div>
 
- <!-- Time Deviation Summary -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-clock"></i> Time Deviation Summary
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Total Allocated Time (Hours)</th>
-                                <th>Total Actual Time (Hours)</th>
-                                <th>Average Deviation (Hours)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            try {
-                                $stmt = $pdo->query("SELECT 
-                                    u.Username,
-                                    COALESCE(SUM(w.AllocatedTime), 0) AS total_allocated,
-                                    COALESCE(SUM(w.ActualTime), 0) AS total_actual,
-                                    ROUND(COALESCE(AVG(w.ActualTime - w.AllocatedTime), 0), 2) AS avg_deviation
-                                    FROM Users u
-                                    LEFT JOIN WorkDiary w ON w.UserID = u.UserID
-                                    GROUP BY u.UserID, u.Username
-                                    ORDER BY u.Username ASC");
-                                
-                                if ($stmt->rowCount() > 0) {
-                                    while ($row = $stmt->fetch()) {
-                                        echo "<tr>";
-                                        echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
-                                        echo "<td>" . number_format($row['total_allocated'], 2) . "</td>";
-                                        echo "<td>" . number_format($row['total_actual'], 2) . "</td>";
-                                        echo "<td>" . number_format($row['avg_deviation'], 2) . "</td>";
-                                        echo "</tr>";
+        <!-- Time Deviation Summary -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-clock"></i> Time Deviation Summary
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Total Allocated Time (Hours)</th>
+                                        <th>Total Actual Time (Hours)</th>
+                                        <th>Average Deviation (Hours)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    try {
+                                        $stmt = $pdo->query("SELECT 
+                                            u.Username,
+                                            COALESCE(SUM(w.AllocatedTime), 0) AS total_allocated,
+                                            COALESCE(SUM(w.ActualTime), 0) AS total_actual,
+                                            ROUND(COALESCE(AVG(w.ActualTime - w.AllocatedTime), 0), 2) AS avg_deviation
+                                            FROM Users u
+                                            LEFT JOIN WorkDiary w ON w.UserID = u.UserID
+                                            WHERE u.Role NOT IN ('SA Team', 'Externals', 'FSID', 'Faculties', 'Smart Factory')
+                                            GROUP BY u.UserID, u.Username
+                                            ORDER BY u.Username ASC");
+                                        
+                                        if ($stmt->rowCount() > 0) {
+                                            while ($row = $stmt->fetch()) {
+                                                echo "<tr>";
+                                                echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
+                                                echo "<td>" . number_format($row['total_allocated'], 2) . "</td>";
+                                                echo "<td>" . number_format($row['total_actual'], 2) . "</td>";
+                                                echo "<td>" . number_format($row['avg_deviation'], 2) . "</td>";
+                                                echo "</tr>";
+                                            }
+                                        } else {
+                                            echo "<tr><td colspan='4' class='text-center'>No user data available</td></tr>";
+                                        }
+                                    } catch (PDOException $e) {
+                                        echo "<tr><td colspan='4' class='text-center text-danger'>Error loading data: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
                                     }
-                                } else {
-                                    echo "<tr><td colspan='4' class='text-center'>No user data available</td></tr>";
-                                }
-                            } catch (PDOException $e) {
-                                echo "<tr><td colspan='4' class='text-center text-danger'>Error loading data: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
-                            }
-                            ?>
-                        </tbody>
-                    </table>
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        <?php
-        $stmt = $pdo->query("SELECT TaskStatus, COUNT(*) as count FROM WorkDiary GROUP BY TaskStatus");
-        $taskStatusLabels = [];
-        $taskStatusData = [];
-        while ($row = $stmt->fetch()) {
-            $taskStatusLabels[] = $row['TaskStatus'];
-            $taskStatusData[] = $row['count'];
-        }
-        ?>
-        const taskStatusCtx = document.getElementById('taskStatusChart').getContext('2d');
-        const taskStatusChart = new Chart(taskStatusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: <?php echo json_encode($taskStatusLabels); ?>,
-                datasets: [{
-                    data: <?php echo json_encode($taskStatusData); ?>,
-                    backgroundColor: [
-                '#FF9800', // Not Started (Orange)
-                '#4CC9F0', // In Progress (Light Blue)
-                '#4CAF50', // Completed (Green)
-                '#F44336'  // Blocked (Red)
-            ],
-                    borderColor: ['#ffffff', '#ffffff', '#ffffff'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            <?php
+            $stmt = $pdo->query("SELECT TaskStatus, COUNT(*) as count FROM WorkDiary GROUP BY TaskStatus");
+            $taskStatusLabels = [];
+            $taskStatusData = [];
+            while ($row = $stmt->fetch()) {
+                $taskStatusLabels[] = $row['TaskStatus'];
+                $taskStatusData[] = $row['count'];
             }
-        });
-        
-        // Weekly Activity Chart
-        <?php
-        $stmt = $pdo->query("SELECT DATE(EntryDate) as date, COUNT(*) as count 
-                            FROM WorkDiary 
-                            WHERE EntryDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
-                            GROUP BY DATE(EntryDate)");
-        $diaryDates = [];
-        $diaryCounts = [];
-        while ($row = $stmt->fetch()) {
-            $diaryDates[] = date('D', strtotime($row['date']));
-            $diaryCounts[date('Y-m-d', strtotime($row['date']))] = $row['count'];
-        }
-
-        $stmt = $pdo->query("SELECT DATE(ObservationDate) as date, COUNT(*) as count 
-                            FROM SATeamObservations 
-                            WHERE ObservationDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
-                            GROUP BY DATE(ObservationDate)");
-        $obsDates = [];
-        $obsCounts = [];
-        while ($row = $stmt->fetch()) {
-            $obsDates[] = date('D', strtotime($row['date']));
-            $obsCounts[date('Y-m-d', strtotime($row['date']))] = $row['count'];
-        }
-
-        $allDates = [];
-        $diaryData = [];
-        $obsData = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = date('Y-m-d', strtotime("-$i days"));
-            $allDates[] = date('D', strtotime($date));
-            $diaryData[] = isset($diaryCounts[$date]) ? $diaryCounts[$date] : 0;
-            $obsData[] = isset($obsCounts[$date]) ? $obsCounts[$date] : 0;
-        }
-        ?>
-        const activityCtx = document.getElementById('activityChart').getContext('2d');
-        const activityChart = new Chart(activityCtx, {
-            type: 'bar',
-            data: {
-                labels: <?php echo json_encode($allDates); ?>,
-                datasets: [{
-                    label: 'Entries',
-                    data: <?php echo json_encode($diaryData); ?>,
-                    backgroundColor: '#4361EE',
-                    borderRadius: 5
-                }, {
-                    label: 'Observations',
-                    data: <?php echo json_encode($obsData); ?>,
-                    backgroundColor: '#F72585',
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: { y: { beginAtZero: true } },
-                plugins: { legend: { position: 'bottom' } }
+            ?>
+            const taskStatusCtx = document.getElementById('taskStatusChart').getContext('2d');
+            const taskStatusChart = new Chart(taskStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: <?php echo json_encode($taskStatusLabels); ?>,
+                    datasets: [{
+                        data: <?php echo json_encode($taskStatusData); ?>,
+                        backgroundColor: [
+                            '#FF9800', // Not Started (Orange)
+                            '#4CC9F0', // In Progress (Light Blue)
+                            '#4CAF50', // Completed (Green)
+                            '#F44336'  // Blocked (Red)
+                        ],
+                        borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+            
+            // Weekly Activity Chart
+            <?php
+            $stmt = $pdo->query("SELECT DATE(EntryDate) as date, COUNT(*) as count 
+                                FROM WorkDiary 
+                                WHERE EntryDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+                                GROUP BY DATE(EntryDate)");
+            $diaryDates = [];
+            $diaryCounts = [];
+            while ($row = $stmt->fetch()) {
+                $diaryDates[] = date('D', strtotime($row['date']));
+                $diaryCounts[date('Y-m-d', strtotime($row['date']))] = $row['count'];
             }
-        });
 
-        // Task Priority Distribution Chart
-        <?php
-        $stmt = $pdo->query("SELECT Priority, COUNT(*) as count FROM ProjectTasks GROUP BY Priority");
-        $priorityLabels = [];
-        $priorityData = [];
-        while ($row = $stmt->fetch()) {
-            $priorityLabels[] = $row['Priority'];
-            $priorityData[] = $row['count'];
-        }
-        ?>
-        const priorityCtx = document.getElementById('priorityChart').getContext('2d');
-        const priorityChart = new Chart(priorityCtx, {
-            type: 'doughnut',
-            data: {
-                labels: <?php echo json_encode($priorityLabels); ?>,
-                datasets: [{
-                    data: <?php echo json_encode($priorityData); ?>,
-                    backgroundColor: ['#4CAF50', '#FF9800', '#F44336'], // Low, Medium, High
-                    borderColor: ['#ffffff', '#ffffff', '#ffffff'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' } }
+            $stmt = $pdo->query("SELECT DATE(ObservationDate) as date, COUNT(*) as count 
+                                FROM SATeamObservations 
+                                WHERE ObservationDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
+                                GROUP BY DATE(ObservationDate)");
+            $obsDates = [];
+            $obsCounts = [];
+            while ($row = $stmt->fetch()) {
+                $obsDates[] = date('D', strtotime($row['date']));
+                $obsCounts[date('Y-m-d', strtotime($row['date']))] = $row['count'];
             }
-        });
-    </script>
+
+            $allDates = [];
+            $diaryData = [];
+            $obsData = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-$i days"));
+                $allDates[] = date('D', strtotime($date));
+                $diaryData[] = isset($diaryCounts[$date]) ? $diaryCounts[$date] : 0;
+                $obsData[] = isset($obsCounts[$date]) ? $obsCounts[$date] : 0;
+            }
+            ?>
+            const activityCtx = document.getElementById('activityChart').getContext('2d');
+            const activityChart = new Chart(activityCtx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode($allDates); ?>,
+                    datasets: [{
+                        label: 'Entries',
+                        data: <?php echo json_encode($diaryData); ?>,
+                        backgroundColor: '#4361EE',
+                        borderRadius: 5
+                    }, {
+                        label: 'Observations',
+                        data: <?php echo json_encode($obsData); ?>,
+                        backgroundColor: '#F72585',
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // Task Priority Distribution Chart
+            <?php
+            $stmt = $pdo->query("SELECT Priority, COUNT(*) as count FROM ProjectTasks GROUP BY Priority");
+            $priorityLabels = [];
+            $priorityData = [];
+            while ($row = $stmt->fetch()) {
+                $priorityLabels[] = $row['Priority'];
+                $priorityData[] = $row['count'];
+            }
+            ?>
+            const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+            const priorityChart = new Chart(priorityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: <?php echo json_encode($priorityLabels); ?>,
+                    datasets: [{
+                        data: <?php echo json_encode($priorityData); ?>,
+                        backgroundColor: ['#4CAF50', '#FF9800', '#F44336'], // Low, Medium, High
+                        borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        </script>
 </body>
 </html>
