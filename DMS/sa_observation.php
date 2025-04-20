@@ -99,29 +99,59 @@
             padding: 20px;
         }
         
-        .table {
-            margin-bottom: 0;
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
         }
         
-        .table th {
+        .table {
+            width: 100%;
+            margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .table thead th {
             background-color: var(--light-color);
             font-weight: 600;
             color: var(--dark-color);
             border-top: none;
+            padding: 12px 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background-clip: padding-box;
         }
         
-        .table td {
+        .table tbody tr {
+            transition: background-color 0.2s ease;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .table tbody td {
+            padding: 12px 15px;
             vertical-align: middle;
-            max-width: 200px; /* Limit width for text-heavy columns */
+            max-width: 200px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
         .table td:hover {
-            white-space: normal; /* Expand on hover for full text */
+            white-space: normal;
             overflow: visible;
             text-overflow: unset;
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        
+        .table tbody tr:nth-child(odd) {
+            background-color: #f9fbfd;
         }
         
         .status-badge {
@@ -135,6 +165,18 @@
         .status-active {
             background-color: rgba(76, 201, 240, 0.1);
             color: var(--accent-color);
+        }
+        
+        .pagination-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .table-responsive {
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
@@ -154,16 +196,6 @@
                             <i class="fas fa-home me-1"></i> Dashboard
                         </a>
                     </li>
-                    <!-- <li class="nav-item">
-                        <a class="nav-link" href="diary_submit.php">
-                            <i class="fas fa-edit me-1"></i> Submit Diary
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="sa_observations.php">
-                            <i class="fas fa-eye me-1"></i> SA Observations
-                        </a>
-                    </li> -->
                     <li class="nav-item">
                         <a class="nav-link" href="task_mapping.php">
                             <i class="fas fa-map me-1"></i> Task Mapping
@@ -189,7 +221,6 @@
         </div>
     </nav>
 
-
     <div class="container dashboard-container">
         <h1 class="page-title">All SA Observations</h1>
         
@@ -212,22 +243,64 @@
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $stmt = $pdo->query("SELECT s.Details, s.Category, u.Username, s.ObservationDate 
-                                                        FROM SATeamObservations s 
-                                                        JOIN Users u ON s.UserID = u.UserID 
-                                                        ORDER BY s.ObservationDate DESC");
-                                    while ($row = $stmt->fetch()) {
-                                        echo "<tr>";
-                                        echo "<td>{$row['Details']}</td>";
-                                        echo "<td><span class='status-badge status-active'>{$row['Category']}</span></td>";
-                                        echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
-                                        echo "<td>{$row['ObservationDate']}</td>";
-                                        echo "</tr>";
+                                    $itemsPerPage = 20;
+                                    $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+                                    $offset = ($page - 1) * $itemsPerPage;
+
+                                    $sql = "SELECT s.Details, s.Category, u.Username, s.ObservationDate 
+                                            FROM SATeamObservations s 
+                                            JOIN Users u ON s.UserID = u.UserID 
+                                            ORDER BY s.ObservationDate DESC";
+                                    
+                                    $countSql = "SELECT COUNT(*) FROM SATeamObservations s";
+                                    $countStmt = $pdo->prepare($countSql);
+                                    $countStmt->execute();
+                                    $totalObservations = $countStmt->fetchColumn();
+                                    $totalPages = ceil($totalObservations / $itemsPerPage);
+
+                                    $sql .= " LIMIT :limit OFFSET :offset";
+                                    $stmt = $pdo->prepare($sql);
+                                    $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
+                                    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                                    $stmt->execute();
+                                    $rowCount = 0;
+
+                                    if ($stmt->rowCount() > 0) {
+                                        while ($row = $stmt->fetch()) {
+                                            $rowCount++;
+                                            echo "<tr>";
+                                            echo "<td>{$row['Details']}</td>";
+                                            echo "<td><span class='status-badge status-active'>{$row['Category']}</span></td>";
+                                            echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
+                                            echo "<td>{$row['ObservationDate']}</td>";
+                                            echo "</tr>";
+                                        }
+                                    } else {
+                                        echo "<tr><td colspan='4' class='no-results'>No observations found.</td></tr>";
                                     }
                                     ?>
                                 </tbody>
                             </table>
                         </div>
+                        <?php if ($totalPages > 1): ?>
+                        <div class="pagination-container">
+                            <nav>
+                                <ul class="pagination">
+                                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
+                                    </li>
+                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                            <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
