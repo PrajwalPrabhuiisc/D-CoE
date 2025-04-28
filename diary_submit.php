@@ -1,33 +1,23 @@
 <?php
 include 'config.php';
 
-// Error handling to fetch users
+// Error handling to catch issues
 try {
     $stmt = $pdo->prepare("SELECT UserID, Username FROM Users WHERE Role IN ('Team Member')");
     $stmt->execute();
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log("Database error (fetch users): " . $e->getMessage());
+    error_log("Database error: " . $e->getMessage());
     $users = [];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Start a transaction
-        $pdo->beginTransaction();
-
-        // Validate required fields
         $userID = $_POST['diary_user'] ?? null;
         $taskID = $_POST['task_id'] ?? null;
         $taskDescription = $_POST['task_description'] ?? null;
         $taskStatus = $_POST['task_status'] ?? null;
         $allocatedTime = $_POST['allocated_time'] ?? null;
-
-        if (!$userID || !$taskID || !$taskDescription || !$taskStatus || !$allocatedTime) {
-            throw new Exception("All required fields must be filled.");
-        }
-
-        // Optional fields
         $actualTime = !empty($_POST['actual_time']) ? $_POST['actual_time'] : null;
         $deviationReason = !empty($_POST['deviation_reason']) ? $_POST['deviation_reason'] : null;
         $personalInsights = !empty($_POST['personal_insights']) ? $_POST['personal_insights'] : null;
@@ -38,17 +28,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $privateTaskStatus = !empty($_POST['private_task_status']) ? $_POST['private_task_status'] : null;
         $privateInsights = !empty($_POST['private_insights']) ? $_POST['private_insights'] : null;
 
-        // Insert into WorkDiary
         $stmt = $pdo->prepare("
             INSERT INTO WorkDiary (UserID, TaskDescription, TaskStatus, AllocatedTime, ActualTime, DeviationReason, 
                                   PersonalInsights, Commitments, GeneralObservations, ImprovementSuggestions) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->execute([$userID, $taskDescription, $taskStatus, $allocatedTime, $actualTime, $deviationReason, 
-                        $personalInsights, $commitments, $generalObservations, $improvementSuggestions]);
+                       $personalInsights, $commitments, $generalObservations, $improvementSuggestions]);
         $entryID = $pdo->lastInsertId();
 
-        // Insert into PrivateDiaryEntries (if applicable)
         if ($privateTaskDescription || $privateTaskStatus || $privateInsights) {
             $stmt = $pdo->prepare("
                 INSERT INTO PrivateDiaryEntries (WorkDiaryEntryID, PrivateTaskDescription, PrivateTaskStatus, PrivateInsights) 
@@ -57,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$entryID, $privateTaskDescription, $privateTaskStatus, $privateInsights]);
         }
 
-        // Insert or update DiarySubmissions
         $stmt = $pdo->prepare("
             INSERT INTO DiarySubmissions (UserID, EntryDate, Submitted, SubmissionTime) 
             VALUES (?, CURDATE(), TRUE, NOW()) 
@@ -65,19 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ");
         $stmt->execute([$userID]);
 
-        // Commit the transaction
-        $pdo->commit();
-
-        // Redirect to confirmation page
         header("Location: submission_confirmation.php");
         exit;
-    } catch (Exception $e) {
-        // Roll back the transaction on error
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
+    } catch (PDOException $e) {
         error_log("Submission error: " . $e->getMessage());
-        $error = "There was an error submitting your diary: " . htmlspecialchars($e->getMessage());
+        $error = "There was an error submitting your diary. Please try again.";
     }
 }
 ?>
