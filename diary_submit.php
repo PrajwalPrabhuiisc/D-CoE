@@ -1,7 +1,7 @@
 <?php
 include 'config.php';
 
-// Fetch users with role 'Team Member' for the dropdown
+// Error handling to catch issues
 try {
     $stmt = $pdo->prepare("SELECT UserID, Username FROM Users WHERE Role IN ('Team Member')");
     $stmt->execute();
@@ -11,7 +11,6 @@ try {
     $users = [];
 }
 
-// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $userID = $_POST['diary_user'] ?? null;
@@ -29,7 +28,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $privateTaskStatus = !empty($_POST['private_task_status']) ? $_POST['private_task_status'] : null;
         $privateInsights = !empty($_POST['private_insights']) ? $_POST['private_insights'] : null;
 
-        // Insert into WorkDiary table
         $stmt = $pdo->prepare("
             INSERT INTO WorkDiary (UserID, TaskDescription, TaskStatus, AllocatedTime, ActualTime, DeviationReason, 
                                   PersonalInsights, Commitments, GeneralObservations, ImprovementSuggestions) 
@@ -39,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        $personalInsights, $commitments, $generalObservations, $improvementSuggestions]);
         $entryID = $pdo->lastInsertId();
 
-        // Insert into PrivateDiaryEntries if private fields are provided
         if ($privateTaskDescription || $privateTaskStatus || $privateInsights) {
             $stmt = $pdo->prepare("
                 INSERT INTO PrivateDiaryEntries (WorkDiaryEntryID, PrivateTaskDescription, PrivateTaskStatus, PrivateInsights) 
@@ -48,7 +45,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$entryID, $privateTaskDescription, $privateTaskStatus, $privateInsights]);
         }
 
-        // Update or insert into DiarySubmissions
         $stmt = $pdo->prepare("
             INSERT INTO DiarySubmissions (UserID, EntryDate, Submitted, SubmissionTime) 
             VALUES (?, CURDATE(), TRUE, NOW()) 
@@ -276,7 +272,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
 
-        // AJAX for task loading (fetches non-completed tasks from fetch_tasks.php)
+        // AJAX for task loading
         $('#diary_user').change(function() {
             const userId = $(this).val();
             if (userId) {
