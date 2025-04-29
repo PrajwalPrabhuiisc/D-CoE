@@ -26,7 +26,6 @@ try {
         FROM projecttasks t
         LEFT JOIN projects p ON t.ProjectID = p.ProjectID
         WHERE t.OwnerID = ?
-        AND t.Status NOT IN ('Completed')
         ORDER BY t.Priority DESC, t.TaskName ASC
     ");
     
@@ -42,7 +41,6 @@ try {
     $response['message'] = 'Error fetching tasks';
 }
 
-// Return JSON response
 echo json_encode($response);
 exit;
 ?>
