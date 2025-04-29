@@ -139,66 +139,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
         .survey-wrapper {
             display: flex;
-            max-width: 1200px;
+            flex-direction: column; /* Stack header and main vertically */
+            max-width: 1400px; /* Increased width */
             width: 100%;
             position: relative;
             gap: 2rem;
             overflow-x: hidden;
         }
 
-        .survey-sidebar {
-            flex: 1;
+        .survey-header {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 3rem 2rem;
+            padding: 2rem;
             color: var(--white);
-            position: sticky;
-            top: 2rem;
-            height: fit-content;
             box-shadow: var(--shadow);
-            min-width: 250px;
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            width: 100%;
         }
 
-        .sidebar-title {
+        .header-title {
             font-family: 'Orbitron', sans-serif;
             font-size: 2rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
             color: var(--secondary);
             text-transform: uppercase;
+            flex: 0 0 auto;
         }
 
-        .sidebar-text {
+        .header-text {
             font-size: 1.1rem;
             line-height: 1.6;
             opacity: 0.9;
-            margin-bottom: 2rem;
+            flex: 1;
         }
 
-        .sidebar-steps {
+        .header-steps {
             display: flex;
-            flex-direction: column;
             gap: 1.5rem;
+            flex: 1;
         }
 
-        .sidebar-step {
+        .header-step {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.5rem;
             font-size: 1rem;
             opacity: 0.8;
-            transition: all 0.3s ease;
+            transition: opacity 0.3s ease;
         }
 
-        .sidebar-step:hover {
+        .header-step:hover {
             opacity: 1;
-            transform: translateX(5px);
         }
 
         .survey-main {
-            flex: 2;
             background: var(--white);
             border-radius: 20px;
             padding: 3rem;
@@ -235,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
         }
 
         .table-container {
-            max-height: 500px;
+            max-height: 500px; /* Kept same as original */
             width: 100%;
             overflow-y: auto;
             overflow-x: auto;
@@ -279,8 +276,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             left: 0;
             z-index: 5;
             background: #E6E6FA;
-            min-width: 200px;
+            min-width: 250px; /* Increased for wider portal */
         }
+
+       		
 
         .survey-table th:first-child {
             z-index: 15;
@@ -289,7 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
         .survey-table th:not(:first-child),
         .survey-table td:not(:first-child) {
-            min-width: 120px;
+            min-width: 150px; /* Increased for wider portal */
             white-space: nowrap;
         }
 
@@ -303,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             font-weight: 600;
             color: var(--dark);
             font-size: 1rem;
-            min-width: 200px;
+            min-width: 250px; /* Increased for wider portal */
         }
 
         .radio-cell {
@@ -368,11 +367,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             background: rgba(255, 255, 255, 0.1);
         }
 
-        @keyframes slideInLeft {
-            from { transform: translateX(-100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
         @keyframes fadeInUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -380,14 +374,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
         @media (max-width: 900px) {
             .survey-wrapper {
-                flex-direction: column;
+                max-width: 100%;
             }
 
-            .survey-sidebar {
-                position: relative;
-                top: 0;
-                padding: 2rem;
-                min-width: 100%;
+            .survey-header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1.5rem;
+            }
+
+            .header-title {
+                font-size: 1.75rem;
+            }
+
+            .header-text {
+                font-size: 1rem;
+            }
+
+            .header-steps {
+                flex-direction: column;
+                gap: 1rem;
             }
 
             .survey-main {
@@ -404,12 +410,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
                 padding: 1rem;
             }
 
-            .sidebar-title {
+            .header-title {
                 font-size: 1.5rem;
             }
 
-            .sidebar-text {
-                font-size: 1rem;
+            .header-text {
+                font-size: 0.9rem;
+            }
+
+            .header-step {
+                font-size: 0.9rem;
             }
 
             .survey-table th,
@@ -421,56 +431,63 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
             .question-cell {
                 width: 100%;
+                min-width: auto;
             }
 
             .table-container {
-                max-height: 400px;
+                max-height: 400px; /* Slightly reduced for mobile */
             }
 
             .survey-table th:first-child,
             .survey-table td:first-child {
                 position: static;
+                min-width: auto;
+            }
+
+            .survey-table th:not(:first-child),
+            .survey-table td:not(:first-child) {
+                min-width: auto;
             }
         }
     </style>
 </head>
 <body>
     <div class="survey-wrapper">
-        <div class="survey-sidebar">
-            <h1 class="sidebar-title">Survey Portal</h1>
-            <p class="sidebar-text">Evaluate the people you interact with. Your feedback shapes insights.</p>
-            <div class="sidebar-steps">
-                <div class="sidebar-step">
+        <div class="survey-header">
+            <h1 class="header-title">Survey Portal</h1>
+            <p class="header-text">Evaluate the people you interact with. Your feedback shapes insights.</p>
+            <div class="header-steps">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                     Identify Yourself
                 </div>
-                <div class="sidebar-step">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                     Select Connections
                 </div>
-                <div class="sidebar-step">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
                     Rate People
                 </div>
-                <div class="sidebar-step">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Rate Software
                 </div>
-                <div class="sidebar-step">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Rate Hardware
                 </div>
-                <div class="sidebar-step">
+                <div class="header-step">
                     <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
