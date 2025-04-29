@@ -1,7 +1,7 @@
 <?php
 include 'config.php';
 
-// Error handling to catch issues
+// Fetch users with role 'Team Member' for the dropdown
 try {
     $stmt = $pdo->prepare("SELECT UserID, Username FROM Users WHERE Role IN ('Team Member')");
     $stmt->execute();
@@ -11,6 +11,7 @@ try {
     $users = [];
 }
 
+// Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $userID = $_POST['diary_user'] ?? null;
@@ -28,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $privateTaskStatus = !empty($_POST['private_task_status']) ? $_POST['private_task_status'] : null;
         $privateInsights = !empty($_POST['private_insights']) ? $_POST['private_insights'] : null;
 
+        // Insert into WorkDiary table
         $stmt = $pdo->prepare("
             INSERT INTO WorkDiary (UserID, TaskDescription, TaskStatus, AllocatedTime, ActualTime, DeviationReason, 
                                   PersonalInsights, Commitments, GeneralObservations, ImprovementSuggestions) 
@@ -37,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        $personalInsights, $commitments, $generalObservations, $improvementSuggestions]);
         $entryID = $pdo->lastInsertId();
 
+        // Insert into PrivateDiaryEntries if private fields are provided
         if ($privateTaskDescription || $privateTaskStatus || $privateInsights) {
             $stmt = $pdo->prepare("
                 INSERT INTO PrivateDiaryEntries (WorkDiaryEntryID, PrivateTaskDescription, PrivateTaskStatus, PrivateInsights) 
@@ -45,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$entryID, $privateTaskDescription, $privateTaskStatus, $privateInsights]);
         }
 
+        // Update or insert into DiarySubmissions
         $stmt = $pdo->prepare("
             INSERT INTO DiarySubmissions (UserID, EntryDate, Submitted, SubmissionTime) 
             VALUES (?, CURDATE(), TRUE, NOW()) 
@@ -272,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         });
 
-        // AJAX for task loading
+        // AJAX for task loading (fetches non-completed tasks from fetch_tasks.php)
         $('#diary_user').change(function() {
             const userId = $(this).val();
             if (userId) {
@@ -290,28 +294,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 taskSelect.append($('<option>').val(task.TaskID).text(task.TaskName));
                             });
                         } else {
-                            taskSelect.append('<option value="">No tasks found</option>');
+                            taskSelect.append('<option value="">No open tasks available</option>');
                         }
                         
                         taskSelect.removeClass('is-invalid');
                     },
                     error: function() {
                         alert('Error fetching tasks');
-                        $('#task_id').html('<option value="">Error loading tasks</option>');
+                        $('#task_id').html('<option value="">Error loading tasks</option>').addClass('is-invalid');
                     }
                 });
             } else {
-                $('#task_id').html('<option value="">Select a user first</option>');
+                $('#task_id').html('<option value="">Select a user first</option>').removeClass('is-invalid');
             }
         });
 
         // Auto-fill task description based on selection
         $('#task_id').change(function() {
             const selectedTask = $(this).find('option:selected').text();
-            if (selectedTask !== 'Select a task' && selectedTask !== 'No tasks found' && selectedTask !== 'Error loading tasks') {
-                $('#task_description').val(selectedTask);
+            if (selectedTask !== 'Select a task' && selectedTask !== 'No open tasks available' && selectedTask !== 'Error loading tasks') {
+                $('#task_description').val(selectedTask).removeClass('is-invalid');
             } else {
-                $('#task_description').val('');
+                $('#task_description').val('').addClass('is-invalid');
             }
         });
     });
