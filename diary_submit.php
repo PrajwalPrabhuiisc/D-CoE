@@ -63,6 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Sanitize and validate ActualTime
+            $actualTime = isset($actualTimes[$index]) && is_numeric($actualTimes[$index]) ? floatval($actualTimes[$index]) : null;
+
             // Insert into WorkDiary table
             $stmt = $pdo->prepare("
                 INSERT INTO WorkDiary (
@@ -76,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $taskDescriptions[$index],
                 $taskStatuses[$index],
                 $allocatedTimes[$index],
-                $actualTimes[$index] ?? null,
+                $actualTime, // Use sanitized value
                 $deviationReasons[$index] ?? null,
                 $personalInsights[$index] ?? null,
                 $commitments[$index] ?? null,
@@ -258,7 +261,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div id="task-sections">
                     <!-- Initial task section -->
                     <div class="task-section">
-                        <span class="remove-task" title="Remove Task">&times;</span>
+                        <span class="remove-task" title="Remove Task">×</span>
                         <h3 class="section-title">Task Information</h3>
                         <div class="mb-3">
                             <label class="form-label">Select Task <span class="required">*</span></label>
@@ -364,7 +367,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Template for new task section
         const taskSectionTemplate = `
             <div class="task-section">
-                <span class="remove-task" title="Remove Task">&times;</span>
+                <span class="remove-task" title="Remove Task">×</span>
                 <h3 class="section-title">Task Information</h3>
                 <div class="mb-3">
                     <label class="form-label">Select Task <span class="required">*</span></label>
