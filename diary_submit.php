@@ -46,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($taskIDs as $index => $taskID) {
             // Validate required fields for each task
             if (
-                empty($taskID) ||
                 empty($taskDescriptions[$index]) ||
                 empty($taskStatuses[$index]) ||
                 empty($allocatedTimes[$index])
@@ -54,11 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("All required fields must be filled for task " . ($index + 1) . ".");
             }
 
-            // Verify TaskID exists
-            $stmt = $pdo->prepare("SELECT TaskID FROM ProjectTasks WHERE TaskID = ?");
-            $stmt->execute([$taskID]);
-            if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
-                throw new Exception("Invalid Task ID for task " . ($index + 1) . ".");
+            // If taskID is 'others', treat as custom task
+            if ($taskID !== 'others') {
+                // Verify TaskID exists for non-custom tasks
+                $stmt = $pdo->prepare("SELECT TaskID FROM ProjectTasks WHERE TaskID = ?");
+                $stmt->execute([$taskID]);
+                if (!$stmt->fetch(PDO::FETCH_ASSOC)) {
+                    throw new Exception("Invalid Task ID for task " . ($index + 1) . ".");
+                }
             }
 
             // Insert into WorkDiary table
@@ -70,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmt->execute([
                 $userID,
-                $taskID,
+                $taskID === 'others' ? null : $taskID,
                 $taskDescriptions[$index],
                 $taskStatuses[$index],
                 $allocatedTimes[$index],
@@ -206,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #3d55f0;
             border-color: #3d55f0;
         }
-        .form-control[readonly] {
+        .form-control[readonly]:not(.custom-task) {
             background-color: #e9ecef;
         }
         .add-task-btn {
@@ -520,14 +522,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } else {
                         taskSelect.append('<option value="">No open tasks available</option>');
                     }
+                    // Add Others option
+                    taskSelect.append($('<option>').val('others').text('Others'));
                     taskSelect.removeClass('is-invalid');
-                    taskSelect.closest('.task-section').find('.task-description').val('').removeClass('is-invalid');
+                    taskSelect.closest('.task-section').find('.task-description').val('').removeClass('is-invalid').prop('readonly', true).removeClass('custom-task');
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX error:', status, error, xhr.responseText);
                     alert('Error fetching tasks. Please try again.');
                     taskSelect.html('<option value="">Error loading tasks</option>').addClass('is-invalid');
-                    taskSelect.closest('.task-section').find('.task-description').val('').addClass('is-invalid');
+                    taskSelect.closest('.task-section').find('.task-description').val('').addClass('is-invalid').prop('readonly', true).removeClass('custom-task');
                 }
             });
         }
@@ -544,24 +548,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $('.task-section').each(function() {
                     const taskSelect = $(this).find('.task-id');
                     taskSelect.html('<option value="">Select a user first</option>').removeClass('is-invalid');
-                    $(this).find('.task-description').val('').removeClass('is-invalid');
+                    $(this).find('.task-description').val('').removeClass('is-invalid').prop('readonly', true).removeClass('custom-task');
                 });
             }
         });
 
-        // Auto-fill task description based on selection
+        // Handle task selection
         $(document).on('change', '.task-id', function() {
-            const selectedTask = $(this).find('option:selected').text();
+            const selectedValue = $(this).val();
+            const selectedText = $(this).find('option:selected').text();
             const taskDescriptionInput = $(this).closest('.task-section').find('.task-description');
-            if (
-                selectedTask !== 'Select a task' &&
-                selectedTask !== 'No open tasks available' &&
-                selectedTask !== 'Error loading tasks' &&
-                selectedTask !== 'Select a user first'
+            
+            if (selectedValue === 'others') {
+                // Allow custom task description
+                taskDescriptionInput.val('').prop('readonly', false).addClass('custom-task').focus();
+            } else if (
+                selectedText !== 'Select a task' &&
+                selectedText !== 'No open tasks available' &&
+                selectedText !== 'Error loading tasks' &&
+                selectedText !== 'Select a user first'
             ) {
-                taskDescriptionInput.val(selectedTask).removeClass('is-invalid');
+                // Auto-fill with predefined task name
+                taskDescriptionInput.val(selectedText).prop('readonly', true).removeClass('custom-task').removeClass('is-invalid');
             } else {
-                taskDescriptionInput.val('').addClass('is-invalid');
+                // Clear and make readonly for invalid selections
+                taskDescriptionInput.val('').prop('readonly', true).removeClass('custom-task').addClass('is-invalid');
             }
         });
     });
