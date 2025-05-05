@@ -63,9 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // Sanitize and validate ActualTime
-            $actualTime = isset($actualTimes[$index]) && is_numeric($actualTimes[$index]) ? floatval($actualTimes[$index]) : null;
-
             // Insert into WorkDiary table
             $stmt = $pdo->prepare("
                 INSERT INTO WorkDiary (
@@ -79,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $taskDescriptions[$index],
                 $taskStatuses[$index],
                 $allocatedTimes[$index],
-                $actualTime, // Use sanitized value
+                $actualTimes[$index] ?? null,
                 $deviationReasons[$index] ?? null,
                 $personalInsights[$index] ?? null,
                 $commitments[$index] ?? null,
@@ -88,29 +85,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $entryID = $pdo->lastInsertId();
 
-            // Insert into PrivateDiaryEntries if private fields are provided
+            // Insert into privatediaryentries if private fields are provided
             if (
                 !empty($privateTaskDescriptions[$index]) ||
                 !empty($privateTaskStatuses[$index]) ||
                 !empty($privateInsights[$index])
             ) {
+                // Convert empty PrivateTaskStatus to NULL to avoid truncation error
+                $privateTaskStatus = !empty($privateTaskStatuses[$index]) ? $privateTaskStatuses[$index] : null;
+
                 $stmt = $pdo->prepare("
-                    INSERT INTO PrivateDiaryEntries (
+                    INSERT INTO privatediaryentries (
                         WorkDiaryEntryID, PrivateTaskDescription, PrivateTaskStatus, PrivateInsights
                     ) VALUES (?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $entryID,
                     $privateTaskDescriptions[$index] ?? null,
-                    $privateTaskStatuses[$index] ?? null,
+                    $privateTaskStatus,
                     $privateInsights[$index] ?? null
                 ]);
             }
         }
 
-        // Update or insert into DiarySubmissions
+        // Update or insert into diarysubmissions
         $stmt = $pdo->prepare("
-            INSERT INTO DiarySubmissions (UserID, EntryDate, Submitted, SubmissionTime) 
+            INSERT INTO diarysubmissions (UserID, EntryDate, Submitted, SubmissionTime) 
             VALUES (?, CURDATE(), TRUE, NOW()) 
             ON DUPLICATE KEY UPDATE Submitted = TRUE, SubmissionTime = NOW()
         ");
@@ -295,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="mb-3">
                                 <label class="form-label">Private Task Status</label>
                                 <select name="private_task_status[]" class="form-select">
-                                    <option value="">None</option>
+                                    <option value="">Select a status (optional)</option>
                                     <option value="Not Started">Not Started</option>
                                     <option value="In Progress">In Progress</option>
                                     <option value="Completed">Completed</option>
@@ -401,7 +401,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="mb-3">
                         <label class="form-label">Private Task Status</label>
                         <select name="private_task_status[]" class="form-select">
-                            <option value="">None</option>
+                            <option value="">Select a status (optional)</option>
                             <option value="Not Started">Not Started</option>
                             <option value="In Progress">In Progress</option>
                             <option value="Completed">Completed</option>
