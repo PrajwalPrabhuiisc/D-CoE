@@ -715,52 +715,86 @@ try {
     document.getElementById('downloadActualTable').addEventListener('click', () => downloadTable('actualTable', 'actual'));
 
     function downloadTable(containerId, prefix) {
-        const button = document.getElementById(`download${containerId.charAt(0).toUpperCase() + containerId.slice(1)}`);
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Preparing...';
-        button.disabled = true;
-        
-        setTimeout(() => {
-            const container = document.getElementById(containerId);
-            const originalOverflow = container.style.overflow;
-            const originalHeight = container.style.height;
-            const originalMaxHeight = container.style.maxHeight;
-            
-            container.style.overflow = 'visible';
-            container.style.height = 'auto';
-            container.style.maxHeight = 'none';
-            
-            html2canvas(container, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                scrollY: -window.scrollY,
-                windowWidth: document.documentElement.offsetWidth,
-                windowHeight: document.documentElement.offsetHeight,
-                width: container.scrollWidth,
-                height: container.scrollHeight,
-                logging: false
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `TMS_${prefix}_analysis_${Date.now()}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-                
-                button.innerHTML = originalText;
-                button.disabled = false;
-                container.style.overflow = originalOverflow;
-                container.style.height = originalHeight;
-                container.style.maxHeight = originalMaxHeight;
-            }).catch(error => {
-                console.error("Error generating image:", error);
-                button.innerHTML = originalText;
-                button.disabled = false;
-                container.style.overflow = originalOverflow;
-                container.style.height = originalHeight;
-                container.style.maxHeight = originalMaxHeight;
-                alert("Error capturing table. Please try again.");
-            });
-        }, 100);
-    }
+    const button = document.getElementById(`download${containerId.charAt(0).toUpperCase() + containerId.slice(1)}`);
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Preparing...';
+    button.disabled = true;
+
+    setTimeout(() => {
+        const container = document.getElementById(containerId);
+        const keywordElement = document.getElementById(`${containerId.replace('Table', 'Keyword')}`);
+        const originalOverflow = container.style.overflow;
+        const originalHeight = container.style.height;
+        const originalMaxHeight = container.style.maxHeight;
+
+        // Create a temporary container to hold both the question and the table
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px'; // Move it off-screen
+        tempContainer.style.backgroundColor = '#ffffff';
+        tempContainer.style.padding = '20px';
+        tempContainer.style.border = '1px solid #dee2e6';
+        tempContainer.style.borderRadius = '12px';
+        tempContainer.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.12)';
+        tempContainer.style.width = `${container.scrollWidth + 40}px`; // Add padding
+
+        // Clone the question text (keywordElement)
+        const questionClone = keywordElement.cloneNode(true);
+        questionClone.style.marginBottom = '15px';
+        questionClone.style.fontSize = '1.1rem';
+        questionClone.style.color = '#212529';
+        // Remove the button from the cloned question to avoid capturing it
+        const buttonInClone = questionClone.querySelector('button');
+        if (buttonInClone) buttonInClone.remove();
+
+        // Clone the table
+        const tableClone = container.querySelector('table').cloneNode(true);
+        tableClone.style.width = '100%';
+
+        // Append both to the temporary container
+        tempContainer.appendChild(questionClone);
+        tempContainer.appendChild(tableClone);
+
+        // Append the temporary container to the body
+        document.body.appendChild(tempContainer);
+
+        // Temporarily adjust the original container's styles
+        container.style.overflow = 'visible';
+        container.style.height = 'auto';
+        container.style.maxHeight = 'none';
+
+        html2canvas(tempContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            scrollY: -window.scrollY,
+            width: tempContainer.offsetWidth,
+            height: tempContainer.offsetHeight,
+            logging: false
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `TMS_${prefix}_analysis_${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            // Clean up
+            button.innerHTML = originalText;
+            button.disabled = false;
+            container.style.overflow = originalOverflow;
+            container.style.height = originalHeight;
+            container.style.maxHeight = originalMaxHeight;
+            document.body.removeChild(tempContainer);
+        }).catch(error => {
+            console.error("Error generating image:", error);
+            button.innerHTML = originalText;
+            button.disabled = false;
+            container.style.overflow = originalOverflow;
+            container.style.height = originalHeight;
+            container.style.maxHeight = originalMaxHeight;
+            document.body.removeChild(tempContainer);
+            alert("Error capturing table. Please try again.");
+        });
+    }, 100);
+}
 
     function handleScrollAnimation() {
         const elements = document.querySelectorAll('.fade-in');
