@@ -43,8 +43,8 @@ if (empty($selectedPeopleDetails)) {
     exit();
 }
 
-// Fetch questions for 'people' category
-$questionsStmt = $pdo->query("SELECT question_id, question_text FROM questions WHERE category = 'human'");
+// Fetch questions for 'people' category, including example
+$questionsStmt = $pdo->query("SELECT question_id, question_text, example FROM questions WHERE category = 'human'");
 $peopleQuestions = $questionsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch question options
@@ -118,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             --light: #E6E6FA;
             --white: #FFFFFF;
             --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --gray: #6B7280;
         }
 
         * {
@@ -139,8 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
         .survey-wrapper {
             display: flex;
-            flex-direction: column; /* Stack header and main vertically */
-            max-width: 1400px; /* Increased width */
+            flex-direction: column;
+            max-width: 1400px;
             width: 100%;
             position: relative;
             gap: 2rem;
@@ -232,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
         }
 
         .table-container {
-            max-height: 500px; /* Kept same as original */
+            max-height: 500px;
             width: 100%;
             overflow-y: auto;
             overflow-x: auto;
@@ -276,10 +277,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             left: 0;
             z-index: 5;
             background: #E6E6FA;
-            min-width: 250px; /* Increased for wider portal */
+            min-width: 300px;
         }
-
-       		
 
         .survey-table th:first-child {
             z-index: 15;
@@ -288,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
 
         .survey-table th:not(:first-child),
         .survey-table td:not(:first-child) {
-            min-width: 150px; /* Increased for wider portal */
+            min-width: 150px;
             white-space: nowrap;
         }
 
@@ -302,7 +301,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             font-weight: 600;
             color: var(--dark);
             font-size: 1rem;
-            min-width: 250px; /* Increased for wider portal */
+            min-width: 300px;
+        }
+
+        .example-text {
+            font-size: 0.9rem;
+            color: var(--gray);
+            font-style: italic;
+            margin-top: 0.5rem;
+            display: none;
+            line-height: 1.2;
+        }
+
+        .example-text.visible {
+            display: block;
+        }
+
+        .toggle-example-btn {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-example-btn:hover {
+            background: #5A3DE5;
         }
 
         .radio-cell {
@@ -403,6 +431,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             .section-title {
                 font-size: 1.5rem;
             }
+
+            .survey-table th:first-child,
+            .survey-table td:first-child {
+                min-width: 250px;
+            }
+
+            .question-cell {
+                min-width: 250px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -434,8 +471,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
                 min-width: auto;
             }
 
+            .example-text {
+                font-size: 0.85rem;
+            }
+
+            .toggle-example-btn {
+                font-size: 0.8rem;
+                padding: 0.4rem 0.8rem;
+            }
+
             .table-container {
-                max-height: 400px; /* Slightly reduced for mobile */
+                max-height: 400px;
             }
 
             .survey-table th:first-child,
@@ -526,9 +572,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
                                         $optionsStmt = $pdo->prepare("SELECT option_id, option_text FROM question_options WHERE question_id = :question_id");
                                         $optionsStmt->execute(['question_id' => $question['question_id']]);
                                         $optionsList = $optionsStmt->fetchAll(PDO::FETCH_ASSOC);
+                                        $exampleText = !empty($question['example']) ? htmlspecialchars($question['example']) : '';
                                         ?>
                                         <tr>
-                                            <td class="question-cell"><?php echo htmlspecialchars($question['question_text']); ?></td>
+                                            <td class="question-cell">
+                                                <?php echo htmlspecialchars($question['question_text']); ?>
+                                                <?php if ($exampleText): ?>
+                                                    <button type="button" class="toggle-example-btn" 
+                                                            onclick="toggleExample(<?php echo $question['question_id']; ?>)"
+                                                            aria-expanded="false"
+                                                            aria-label="Toggle example for <?php echo htmlspecialchars($question['question_text']); ?>">
+                                                        Show Example
+                                                    </button>
+                                                    <div class="example-text" id="example-<?php echo $question['question_id']; ?>">
+                                                        <strong>Example:</strong> <?php echo $exampleText; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
                                             <?php if (empty($optionsList)): ?>
                                                 <td colspan="<?php echo count($selectedPeopleDetails); ?>" style="text-align: center; color: #6B7280;">
                                                     No options available for this question.
@@ -561,5 +621,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['response'])) {
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+        function toggleExample(questionId) {
+            const exampleDiv = document.getElementById(`example-${questionId}`);
+            const button = exampleDiv.previousElementSibling;
+            const isVisible = exampleDiv.classList.contains('visible');
+
+            if (isVisible) {
+                exampleDiv.classList.remove('visible');
+                button.textContent = 'Show Example';
+                button.setAttribute('aria-expanded', 'false');
+            } else {
+                exampleDiv.classList.add('visible');
+                button.textContent = 'Hide Example';
+                button.setAttribute('aria-expanded', 'true');
+            }
+        }
+    </script>
 </body>
 </html>
