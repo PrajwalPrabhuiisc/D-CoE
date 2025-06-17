@@ -337,7 +337,7 @@
                             ?>
                         </ul>
                         <div class="view-all">
-                            <a href="sa_observation.php">View all observations <i class="fas fa-arrow-right ms-1"></i></a>
+                            <a href="report-saobservations.php">View all observations <i class="fas fa-arrow-right ms-1"></i></a>
                         </div>
                     </div>
                 </div>
