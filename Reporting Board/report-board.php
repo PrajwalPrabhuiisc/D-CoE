@@ -233,7 +233,6 @@
     </style>
 </head>
 <body>
-   
     <div class="container dashboard-container">
         <h1 class="page-title">SA Digital Board</h1>
         
@@ -370,7 +369,7 @@
                             ?>
                         </ul>
                         <div class="view-all">
-                            <a href="tasks.php">View all tasks <i class="fas fa-arrow-right ms-1"></i></a>
+                            <a href="report-tasks.php">View all tasks <i class="fas fa-arrow-right ms-1"></i></a>
                         </div>
                     </div>
                 </div>
@@ -594,6 +593,11 @@
                     plugins: { legend: { position: 'bottom' } }
                 }
             });
+
+            // Auto-refresh page every 5 minutes (300,000 milliseconds)
+            setTimeout(function() {
+                window.location.reload();
+            }, 300000);
         </script>
 </body>
 </html>
