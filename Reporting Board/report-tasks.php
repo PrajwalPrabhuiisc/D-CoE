@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>In Progress Tasks</title>
+    <title>Active Tasks</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -24,38 +24,12 @@
             font-family: 'Poppins', sans-serif;
             background-color: #f5f7fa;
             color: #333;
-        }
-        
-        .navbar {
-            background-color: white !important;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-            font-size: 1.5rem;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            color: #555 !important;
-            margin: 0 5px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover {
-            color: var(--primary-color) !important;
-            transform: translateY(-2px);
-        }
-        
-        .nav-link.active {
-            color: var(--primary-color) !important;
-            border-bottom: 3px solid var(--primary-color);
+            margin: 0;
+            padding-top: 20px;
         }
         
         .dashboard-container {
-            padding: 30px 0;
+            padding: 20px 0;
         }
         
         .page-title {
@@ -167,10 +141,10 @@
             font-style: italic;
         }
         
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--primary-color);
+        .pagination-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
         }
         
         @media (max-width: 768px) {
@@ -181,35 +155,15 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-book-open me-2"></i>Diary System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="report-board.php">
-                            <i class="fas fa-chart-bar me-1"></i> Report Board
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="container dashboard-container">
-        <h1 class="page-title">In Progress Tasks</h1>
+        <h1 class="page-title">Active Tasks</h1>
         
         <div class="row">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
                         <div>
-                            <i class="fas fa-tasks"></i> In Progress Tasks
+                            <i class="fas fa-tasks"></i> Active Tasks
                         </div>
                     </div>
                     <div class="card-body p-0">
@@ -231,14 +185,14 @@
                                     $offset = ($page - 1) * $itemsPerPage;
 
                                     $sql = "SELECT w.TaskDescription, w.TaskStatus, u.Username, p.ProjectName, w.EntryDate 
-                                            FROM workdiary w 
-                                            JOIN users u ON w.UserID = u.UserID 
-                                            LEFT JOIN projecttasks pt ON w.TaskID = pt.TaskID 
-                                            LEFT JOIN projects p ON pt.ProjectID = p.ProjectID 
+                                            FROM WorkDiary w 
+                                            JOIN Users u ON w.UserID = u.UserID 
+                                            LEFT JOIN ProjectTasks pt ON w.TaskID = pt.TaskID 
+                                            LEFT JOIN Projects p ON pt.ProjectID = p.ProjectID 
                                             WHERE w.TaskStatus = 'In Progress'
                                             ORDER BY w.EntryDate DESC";
 
-                                    $countSql = "SELECT COUNT(*) FROM workdiary w WHERE w.TaskStatus = 'In Progress'";
+                                    $countSql = "SELECT COUNT(*) FROM WorkDiary w WHERE w.TaskStatus = 'In Progress'";
                                     $countStmt = $pdo->prepare($countSql);
                                     $countStmt->execute();
                                     $totalTasks = $countStmt->fetchColumn();
@@ -268,7 +222,7 @@
                             </table>
                         </div>
                         <?php if ($totalPages > 1): ?>
-                        <div class="pagination-container d-flex justify-content-center mt-3">
+                        <div class="pagination-container">
                             <nav>
                                 <ul class="pagination">
                                     <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
@@ -293,5 +247,11 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-toggle to next page (report-board.php) after 2 minutes (120,000 milliseconds)
+        setTimeout(function() {
+            window.location.href = 'report-board.php';
+        }, 120000);
+    </script>
 </body>
 </html>
