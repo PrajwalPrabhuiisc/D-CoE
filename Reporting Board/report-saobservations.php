@@ -24,38 +24,12 @@
             font-family: 'Poppins', sans-serif;
             background-color: #f5f7fa;
             color: #333;
-        }
-        
-        .navbar {
-            background-color: white !important;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-            font-size: 1.5rem;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            color: #555 !important;
-            margin: 0 5px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover {
-            color: var(--primary-color) !important;
-            transform: translateY(-2px);
-        }
-        
-        .nav-link.active {
-            color: var(--primary-color) !important;
-            border-bottom: 3px solid var(--primary-color);
+            margin: 0;
+            padding-top: 20px;
         }
         
         .dashboard-container {
-            padding: 30px 0;
+            padding: 20px 0;
         }
         
         .page-title {
@@ -181,26 +155,6 @@
     </style>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">
-                <i class="fas fa-book-open me-2"></i>Diary System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="report-board.php">
-                            <i class="fas fa-chart-bar me-1"></i> Report Board
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
     <div class="container dashboard-container">
         <h1 class="page-title">All SA Observations</h1>
         
@@ -249,10 +203,10 @@
                                         while ($row = $stmt->fetch()) {
                                             $rowCount++;
                                             echo "<tr>";
-                                            echo "<td>{$row['Details']}</td>";
-                                            echo "<td><span class='status-badge status-active'>{$row['Category']}</span></td>";
-                                            echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
-                                            echo "<td>{$row['ObservationDate']}</td>";
+                                            echo "<td>" . htmlspecialchars($row['Details']) . "</td>";
+                                            echo "<td><span class='status-badge status-active'>" . htmlspecialchars($row['Category']) . "</span></td>";
+                                            echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['ObservationDate']) . "</td>";
                                             echo "</tr>";
                                         }
                                     } else {
@@ -288,5 +242,11 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-toggle to next page (report-tasks.php) after 2 minutes (120,000 milliseconds)
+        setTimeout(function() {
+            window.location.href = 'report-tasks.php';
+        }, 120000);
+    </script>
 </body>
 </html>
