@@ -24,38 +24,12 @@
             font-family: 'Poppins', sans-serif;
             background-color: #f5f7fa;
             color: #333;
-        }
-        
-        .navbar {
-            background-color: white !important;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-        }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary-color) !important;
-            font-size: 1.5rem;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            color: #555 !important;
-            margin: 0 5px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover {
-            color: var(--primary-color) !important;
-            transform: translateY(-2px);
-        }
-        
-        .nav-link.active {
-            color: var(--primary-color) !important;
-            border-bottom: 3px solid var(--primary-color);
+            margin: 0;
+            padding-top: 20px;
         }
         
         .dashboard-container {
-            padding: 30px 0;
+            padding: 20px 0;
         }
         
         .page-title {
@@ -100,29 +74,70 @@
             padding: 20px;
         }
         
-        .table {
-            margin-bottom: 0;
+        .kanban-board {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            max-height: 600px;
         }
         
-        .table th {
-            background-color: var(--light-color);
+        .kanban-column {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 250px;
+            max-width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        
+        .kanban-column h6 {
+            margin: 0;
+            padding-bottom: 5px;
+            border-bottom: 2px solid var(--primary-color);
+            text-align: center;
             font-weight: 600;
-            color: var(--dark-color);
-            border-top: none;
         }
         
-        .table td {
-            vertical-align: middle;
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        .kanban-card {
+            background-color: white;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
         }
         
-        .table td:hover {
-            white-space: normal;
-            overflow: visible;
-            text-overflow: unset;
+        .kanban-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .kanban-card.dragging {
+            opacity: 0.5;
+        }
+        
+        .kanban-card .task-title {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .kanban-card .task-user {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .kanban-card .task-date {
+            font-size: 0.7rem;
+            color: #888;
+        }
+        
+        .kanban-card .task-details {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 5px;
         }
         
         .status-badge {
@@ -185,29 +200,20 @@
             display: flex;
             justify-content: center;
         }
+        
+        @media (max-width: 768px) {
+            .kanban-board {
+                flex-direction: column;
+                overflow-x: visible;
+            }
+            .kanban-column {
+                min-width: 100%;
+                max-width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="report-board.php">
-                <i class="fas fa-book-open me-2"></i>Diary System
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="report-board.php">
-                            <i class="fas fa-chart-bar me-1"></i> Report Board
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    
     <div class="container dashboard-container">
         <h1 class="page-title">All Diary Entries</h1>
         
@@ -218,7 +224,7 @@
                         <div>
                             <i class="fas fa-book"></i> Diary Entries
                         </div>
-                        <div>
+                        <!-- <div class="filter-container">
                             <form id="filterForm" method="GET" class="d-inline">
                                 <button type="button" class="btn btn-sm btn-outline-secondary filter-btn active" data-status="all">All</button>
                                 <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-status="in progress">In Progress</button>
@@ -228,107 +234,105 @@
                                 <input type="hidden" name="status" id="statusFilter" value="">
                                 <input type="hidden" name="page" id="pageFilter" value="1">
                             </form>
-                        </div>
+                        </div> -->
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Task Description</th>
-                                        <th>Status</th>
-                                        <th>User</th>
-                                        <th>Allocated Time (Hours)</th>
-                                        <th>Actual Time (Hours)</th>
-                                        <th>Deviation Reason</th>
-                                        <th>Commitments</th>
-                                        <th>Entry Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="diaryTable">
-                                    <?php
-                                    // Pagination settings
-                                    $entriesPerPage = 20;
-                                    $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-                                    $offset = ($page - 1) * $entriesPerPage;
-                                    
-                                    // Get filter status from GET parameter
-                                    $statusFilter = isset($_GET['status']) ? $_GET['status'] : 'all';
-                                    
-                                    // Count total entries for pagination
-                                    $countSql = "SELECT COUNT(*) as total 
-                                                FROM WorkDiary w 
-                                                JOIN Users u ON w.UserID = u.UserID";
-                                    if ($statusFilter != 'all') {
-                                        $countSql .= " WHERE LOWER(w.TaskStatus) = :status";
+                        <div class="kanban-board">
+                            <?php
+                            $entriesPerPage = 20;
+                            $page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
+                            $offset = ($page - 1) * $entriesPerPage;
+                            
+                            $statusFilter = isset($_GET['status']) ? strtolower($_GET['status']) : 'all';
+                            
+                            $countSql = "SELECT COUNT(*) as total 
+                                        FROM WorkDiary w 
+                                        JOIN Users u ON w.UserID = u.UserID";
+                            if ($statusFilter != 'all') {
+                                $countSql .= " WHERE LOWER(w.TaskStatus) = :status";
+                            }
+                            
+                            $countStmt = $pdo->prepare($countSql);
+                            if ($statusFilter != 'all') {
+                                $countStmt->bindParam(':status', $statusFilter, PDO::PARAM_STR);
+                            }
+                            $countStmt->execute();
+                            $totalEntries = $countStmt->fetchColumn();
+                            $totalPages = ceil($totalEntries / $entriesPerPage);
+                            
+                            $sql = "SELECT w.TaskDescription, w.TaskStatus, u.Username, 
+                                    w.AllocatedTime, w.ActualTime, w.DeviationReason, 
+                                    w.Commitments, w.EntryDate 
+                                    FROM WorkDiary w 
+                                    JOIN Users u ON w.UserID = u.UserID ";
+                            
+                            if ($statusFilter != 'all') {
+                                $sql .= "WHERE LOWER(w.TaskStatus) = :status ";
+                            }
+                            
+                            $sql .= "ORDER BY w.EntryDate DESC LIMIT :limit OFFSET :offset";
+                            
+                            $stmt = $pdo->prepare($sql);
+                            if ($statusFilter != 'all') {
+                                $stmt->bindParam(':status', $statusFilter, PDO::PARAM_STR);
+                            }
+                            $stmt->bindParam(':limit', $entriesPerPage, PDO::PARAM_INT);
+                            $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+                            $stmt->execute();
+                            
+                            $tasksByStatus = [
+                                'Not Started' => [],
+                                'In Progress' => [],
+                                'Completed' => [],
+                                'Blocked' => []
+                            ];
+                            while ($row = $stmt->fetch()) {
+                                $status = $row['TaskStatus'];
+                                if (array_key_exists($status, $tasksByStatus)) {
+                                    $tasksByStatus[$status][] = $row;
+                                }
+                            }
+                            
+                            $rowCount = 0;
+                            foreach ($tasksByStatus as $status => $tasks) {
+                                if ($statusFilter != 'all' && strtolower($status) != $statusFilter) {
+                                    continue; // Skip columns not matching the filter
+                                }
+                                $rowCount += count($tasks);
+                                echo "<div class='kanban-column'>";
+                                echo "<h6>" . htmlspecialchars($status) . "</h6>";
+                                foreach ($tasks as $task) {
+                                    $statusClass = '';
+                                    switch (strtolower($status)) {
+                                        case 'in progress':
+                                            $statusClass = 'status-active';
+                                            break;
+                                        case 'completed':
+                                            $statusClass = 'status-completed';
+                                            break;
+                                        case 'not started':
+                                        case 'blocked':
+                                            $statusClass = 'status-pending';
+                                            break;
                                     }
-                                    
-                                    $countStmt = $pdo->prepare($countSql);
-                                    if ($statusFilter != 'all') {
-                                        $countStmt->bindParam(':status', $statusFilter, PDO::PARAM_STR);
-                                    }
-                                    $countStmt->execute();
-                                    $totalEntries = $countStmt->fetchColumn();
-                                    $totalPages = ceil($totalEntries / $entriesPerPage);
-                                    
-                                    // Prepare the main query
-                                    $sql = "SELECT w.TaskDescription, w.TaskStatus, u.Username, 
-                                            w.AllocatedTime, w.ActualTime, w.DeviationReason, 
-                                            w.Commitments, w.EntryDate 
-                                            FROM WorkDiary w 
-                                            JOIN Users u ON w.UserID = u.UserID ";
-                                    
-                                    if ($statusFilter != 'all') {
-                                        $sql .= "WHERE LOWER(w.TaskStatus) = :status ";
-                                    }
-                                    
-                                    $sql .= "ORDER BY w.EntryDate DESC LIMIT :limit OFFSET :offset";
-                                    
-                                    $stmt = $pdo->prepare($sql);
-                                    
-                                    // Bind parameters
-                                    if ($statusFilter != 'all') {
-                                        $stmt->bindParam(':status', $statusFilter, PDO::PARAM_STR);
-                                    }
-                                    $stmt->bindParam(':limit', $entriesPerPage, PDO::PARAM_INT);
-                                    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
-                                    
-                                    $stmt->execute();
-                                    $rowCount = 0;
-                                    
-                                    while ($row = $stmt->fetch()) {
-                                        $rowCount++;
-                                        $statusClass = "";
-                                        switch (strtolower($row['TaskStatus'])) {
-                                            case 'in progress':
-                                                $statusClass = "status-active";
-                                                break;
-                                            case 'completed':
-                                                $statusClass = "status-completed";
-                                                break;
-                                            case 'not started':
-                                            case 'blocked':
-                                                $statusClass = "status-pending";
-                                                break;
-                                        }
-                                        echo "<tr>";
-                                        echo "<td>{$row['TaskDescription']}</td>";
-                                        echo "<td><span class='status-badge {$statusClass}'>{$row['TaskStatus']}</span></td>";
-                                        echo "<td><i class='fas fa-user me-1'></i>{$row['Username']}</td>";
-                                        echo "<td>" . ($row['AllocatedTime'] ?? 'N/A') . "</td>";
-                                        echo "<td>" . ($row['ActualTime'] ?? 'N/A') . "</td>";
-                                        echo "<td>" . ($row['DeviationReason'] ?? 'None') . "</td>";
-                                        echo "<td>" . ($row['Commitments'] ?? 'None') . "</td>";
-                                        echo "<td>{$row['EntryDate']}</td>";
-                                        echo "</tr>";
-                                    }
-                                    
-                                    if ($rowCount == 0) {
-                                        echo "<tr><td colspan='8' class='no-results'>No entries found for the selected status.</td></tr>";
-                                    }
-                                    ?>
-                                </tbody>
-                            </table>
+                                    echo "<div class='kanban-card' draggable='true'>";
+                                    echo "<div class='task-title'>" . htmlspecialchars($task['TaskDescription']) . "</div>";
+                                    echo "<div class='task-user'><i class='fas fa-user me-1'></i>" . htmlspecialchars($task['Username']) . "</div>";
+                                    echo "<div class='task-date'>" . htmlspecialchars($task['EntryDate']) . "</div>";
+                                    echo "<div class='task-details'>Allocated: " . ($task['AllocatedTime'] ?? 'N/A') . "h</div>";
+                                    echo "<div class='task-details'>Actual: " . ($task['ActualTime'] ?? 'N/A') . "h</div>";
+                                    echo "<div class='task-details'>Reason: " . ($task['DeviationReason'] ?? 'None') . "</div>";
+                                    echo "<div class='task-details'>Commitments: " . ($task['Commitments'] ?? 'None') . "</div>";
+                                    echo "<span class='status-badge $statusClass'>" . htmlspecialchars($status) . "</span>";
+                                    echo "</div>";
+                                }
+                                echo "</div>";
+                            }
+                            
+                            if ($rowCount == 0) {
+                                echo "<div class='no-results'>No entries found for the selected status.</div>";
+                            }
+                            ?>
                         </div>
                         
                         <?php if ($totalPages > 1): ?>
@@ -384,11 +388,39 @@
                     filterButtons.forEach(btn => btn.classList.remove('active'));
                     this.classList.add('active');
                     statusFilterInput.value = this.dataset.status;
-                    pageFilterInput.value = 1; // Reset to page 1 when changing status
+                    pageFilterInput.value = 1;
                     filterForm.submit();
                 });
             });
+
+            // Kanban Drag-and-Drop (read-only)
+            document.querySelectorAll('.kanban-card').forEach(card => {
+                card.addEventListener('dragstart', () => {
+                    card.classList.add('dragging');
+                });
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                });
+            });
+
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                column.addEventListener('dragover', e => {
+                    e.preventDefault();
+                });
+                column.addEventListener('drop', e => {
+                    e.preventDefault();
+                    const draggingCard = document.querySelector('.dragging');
+                    if (draggingCard) {
+                        column.appendChild(draggingCard);
+                    }
+                });
+            });
         });
+
+        // Auto-toggle to next page (report-saobservations.php) after 2 minutes (120,000 milliseconds)
+        setTimeout(function() {
+            window.location.href = 'report-saobservations.php';
+        }, 120000);
     </script>
 </body>
 </html>
