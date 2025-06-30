@@ -485,14 +485,15 @@
                                     ) AS TaskCompletionScore,
                                     COALESCE(
                                         CASE 
-                                            WHEN AVG(w.ActualTime - w.AllocatedTime) <= 0 THEN 100
-                                            ELSE GREATEST(100 - (AVG(w.ActualTime - w.AllocatedTime) * 10), 0)
+                                            WHEN COUNT(w.EntryID) = 0 THEN 0
+                                            WHEN AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END) <= 0 THEN 100
+                                            ELSE GREATEST(100 - (AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END) * 5), 0)
                                         END,
-                                        100
+                                        0
                                     ) AS TimeEfficiencyScore,
                                     COALESCE(
                                         ROUND(
-                                            (SUM(CASE WHEN DATE(w.CreatedAt) = w.EntryDate THEN 1 ELSE 0 END) / 
+                                            (SUM(CASE WHEN DATE(w.CreatedAt) = DATE(w.EntryDate) THEN 1 ELSE 0 END) / 
                                             NULLIF(COUNT(w.EntryID), 0)) * 100, 
                                             2
                                         ),
@@ -505,14 +506,15 @@
                                         ) * 0.4) +
                                         (COALESCE(
                                             CASE 
-                                                WHEN AVG(w.ActualTime - w.AllocatedTime) <= 0 THEN 100
-                                                ELSE GREATEST(100 - (AVG(w.ActualTime - w.AllocatedTime) * 10), 0)
+                                                WHEN COUNT(w.EntryID) = 0 THEN 0
+                                                WHEN AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END) <= 0 THEN 100
+                                                ELSE GREATEST(100 - (AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END) * 5), 0)
                                             END,
-                                            100
+                                            0
                                         ) * 0.3) +
                                         (COALESCE(
                                             ROUND(
-                                                (SUM(CASE WHEN DATE(w.CreatedAt) = w.EntryDate THEN 1 ELSE 0 END) / 
+                                                (SUM(CASE WHEN DATE(w.CreatedAt) = DATE(w.EntryDate) THEN 1 ELSE 0 END) / 
                                                 NULLIF(COUNT(w.EntryID), 0)) * 100, 
                                                 2
                                             ),
@@ -641,7 +643,7 @@
                         <li>
                             <strong>Time Efficiency (30%):</strong><br>
                             Score based on how closely actual time matches allocated time.<br>
-                            <em>Formula:</em> If Actual ≤ Allocated: 100; Else: 100 - (Avg Deviation × 10), min 0 × 0.3<br>
+                            <em>Formula:</em> If Actual ≤ Allocated: 100; Else: 100 - (Avg Overrun in Hours × 5), min 0 × 0.3<br>
                             <em>Max Points:</em> 30
                         </li>
                         <li>
@@ -652,7 +654,7 @@
                         </li>
                         <li>
                             <strong>Total Score:</strong><br>
-                            Sum of weighted scores from above, sorted in descending order.<br>
+                            Sum of weighted scores, sorted in descending order with ties broken by Task Completion, Time Efficiency, and Consistency.<br>
                             <em>Formula:</em> Task Completion + Time Efficiency + Consistency<br>
                             <em>Max Total:</em> 100
                         </li>
