@@ -88,6 +88,8 @@
         
         .table {
             margin-bottom: 0;
+            border-collapse: separate;
+            border-spacing: 0;
         }
         
         .table th {
@@ -99,10 +101,34 @@
             top: 0;
             z-index: 1;
             background-clip: padding-box;
+            padding: 12px 15px;
         }
         
         .table td {
             vertical-align: middle;
+            padding: 12px 15px;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .table td:hover {
+            white-space: normal;
+            overflow: visible;
+            text-overflow: unset;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .table tbody tr:nth-child(even) {
+            background-color: #ffffff;
+        }
+        
+        .table tbody tr:nth-child(odd) {
+            background-color: #f9fbfd;
         }
         
         .status-badge {
@@ -289,7 +315,7 @@
                                         ?>
                                     </div>
                                     <div class="view-all">
-                                        <a href="report-saobservations.php">View all observations <i class="fas fa-arrow-right ms-1"></i></a>
+                                        <a href="report-diaryentries.php">View all entries <i class="fas fa-arrow-right ms-1"></i></a>
                                     </div>
                                 </div>
                                 <!-- Active Tasks Slide -->
@@ -323,6 +349,66 @@
                                                 ?>
                                             </tbody>
                                         </table>
+                                    </div>
+                                </div>
+                                <!-- Top Contributors Slide -->
+                                <div class="carousel-item">
+                                    <h5 class="text-center mb-3">Top Contributors</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Rank</th>
+                                                    <th>Username</th>
+                                                    <th>Total Entries</th>
+                                                    <th>Timeliness (%)</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                $startDate = date('Y-m-d', strtotime('-30 days'));
+                                                $sql = "
+                                                    SELECT 
+                                                        u.Username,
+                                                        COUNT(w.EntryID) as total_entries,
+                                                        COALESCE(
+                                                            ROUND(
+                                                                (SUM(CASE WHEN DATE(w.CreatedAt) = DATE(w.EntryDate) THEN 1 ELSE 0 END) / 
+                                                                NULLIF(COUNT(w.EntryID), 0)) * 100, 
+                                                                2
+                                                            ),
+                                                            0
+                                                        ) as timeliness_percentage,
+                                                        @rank := @rank + 1 as rank
+                                                    FROM workdiary w
+                                                    JOIN users u ON w.UserID = u.UserID
+                                                    CROSS JOIN (SELECT @rank := 0) as init
+                                                    WHERE w.EntryDate >= :startDate
+                                                    GROUP BY u.UserID, u.Username
+                                                    ORDER BY total_entries DESC, timeliness_percentage DESC
+                                                    LIMIT 5
+                                                ";
+                                                $stmt = $pdo->prepare($sql);
+                                                $stmt->bindValue(':startDate', $startDate, PDO::PARAM_STR);
+                                                $stmt->execute();
+                                                if ($stmt->rowCount() > 0) {
+                                                    while ($row = $stmt->fetch()) {
+                                                        echo "<tr>";
+                                                        echo "<td>#" . htmlspecialchars($row['rank']) . "</td>";
+                                                        echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
+                                                        echo "<td>" . htmlspecialchars($row['total_entries']) . "</td>";
+                                                        echo "<td><span class='status-badge status-active'>" . htmlspecialchars($row['timeliness_percentage']) . "%</span></td>";
+                                                        echo "</tr>";
+                                                    }
+                                                } else {
+                                                    echo "<tr><td colspan='4' class='text-center'>No contributor data available</td></tr>";
+                                                }
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="view-all">
+                                        <a href="report-saobservations.php">View all contributors <i class="fas fa-arrow-right ms-1"></i></a>
                                     </div>
                                 </div>
                             </div>
