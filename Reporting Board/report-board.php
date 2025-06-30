@@ -8,7 +8,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary-color: #4361ee;
@@ -80,12 +79,6 @@
         
         .carousel-item {
             padding: 20px;
-        }
-        
-        .carousel-item canvas {
-            margin: 0 auto;
-            max-height: 350px;
-            width: 100%;
         }
         
         .table-responsive {
@@ -226,9 +219,6 @@
                 min-width: 100%;
                 max-width: 100%;
             }
-            .carousel-item canvas {
-                max-height: 300px;
-            }
         }
     </style>
 </head>
@@ -299,39 +289,7 @@
                                         ?>
                                     </div>
                                     <div class="view-all">
-                                        <a href="report-diaryentries.php">View all entries <i class="fas fa-arrow-right ms-1"></i></a>
-                                    </div>
-                                </div>
-                                <!-- SA Observations Slide -->
-                                <div class="carousel-item">
-                                    <h5 class="text-center mb-3">Recent SA Observations</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Details</th>
-                                                    <th>Category</th>
-                                                    <th>User</th>
-                                                    <th>Observation Date</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php
-                                                $stmt = $pdo->query("SELECT s.Details, s.Category, u.Username, s.ObservationDate 
-                                                                    FROM SATeamObservations s 
-                                                                    JOIN Users u ON s.UserID = u.UserID 
-                                                                    ORDER BY s.ObservationDate DESC LIMIT 5");
-                                                while ($row = $stmt->fetch()) {
-                                                    echo "<tr>";
-                                                    echo "<td>" . htmlspecialchars($row['Details']) . "</td>";
-                                                    echo "<td><span class='status-badge status-active'>" . htmlspecialchars($row['Category']) . "</span></td>";
-                                                    echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
-                                                    echo "<td>" . htmlspecialchars($row['ObservationDate']) . "</td>";
-                                                    echo "</tr>";
-                                                }
-                                                ?>
-                                            </tbody>
-                                        </table>
+                                        <a href="report-saobservations.php">View all observations <i class="fas fa-arrow-right ms-1"></i></a>
                                     </div>
                                 </div>
                                 <!-- Active Tasks Slide -->
@@ -365,21 +323,6 @@
                                                 ?>
                                             </tbody>
                                         </table>
-                                    </div>
-                                </div>
-                                <!-- Task Analytics Slide -->
-                                <div class="carousel-item">
-                                    <h5 class="text-center mb-3">Task Analytics</h5>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <canvas id="taskStatusChart" height="350"></canvas>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <canvas id="completionChart" height="350"></canvas>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <canvas id="deviationChart" height="350"></canvas>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -420,9 +363,9 @@
                                     try {
                                         $stmt = $pdo->query("SELECT 
                                             u.Username,
-                                            COALESCE(SUM(w.AllocatedTime), 0) AS total_allocated,
-                                            COALESCE(SUM(w.ActualTime), 0) AS total_actual,
-                                            ROUND(COALESCE(AVG(w.ActualTime - w.AllocatedTime), 0), 2) AS avg_deviation
+                                            COALESCE(SUM(CASE WHEN w.AllocatedTime IS NOT NULL THEN w.AllocatedTime ELSE 0 END), 0) AS total_allocated,
+                                            COALESCE(SUM(CASE WHEN w.ActualTime IS NOT NULL THEN w.ActualTime ELSE 0 END), 0) AS total_actual,
+                                            COALESCE(ROUND(AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END), 2), 0) AS avg_deviation
                                             FROM Users u
                                             LEFT JOIN WorkDiary w ON w.UserID = u.UserID
                                             WHERE u.Role NOT IN ('SA Team', 'Externals', 'FSID', 'Faculties', 'Smart Factory')
@@ -456,132 +399,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Task Status Distribution Chart
-        <?php
-        $stmt = $pdo->query("SELECT TaskStatus, COUNT(*) as count FROM WorkDiary GROUP BY TaskStatus");
-        $taskStatusLabels = [];
-        $taskStatusData = [];
-        while ($row = $stmt->fetch()) {
-            $taskStatusLabels[] = $row['TaskStatus'];
-            $taskStatusData[] = $row['count'];
-        }
-        ?>
-        const taskStatusCtx = document.getElementById('taskStatusChart').getContext('2d');
-        const taskStatusChart = new Chart(taskStatusCtx, {
-            type: 'pie',
-            data: {
-                labels: <?php echo json_encode($taskStatusLabels); ?>,
-                datasets: [{
-                    data: <?php echo json_encode($taskStatusData); ?>,
-                    backgroundColor: ['#FF9800', '#4CC9F0', '#4CAF50', '#F44336'],
-                    borderColor: ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    title: { display: true, text: 'Task Status Distribution', font: { size: 14 } }
-                }
-            }
-        });
-
-        // Task Completion Over Time Chart
-        <?php
-        $stmt = $pdo->query("SELECT DATE(EntryDate) as date, COUNT(*) as count 
-                            FROM WorkDiary 
-                            WHERE TaskStatus = 'Completed' 
-                            AND EntryDate >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
-                            GROUP BY DATE(EntryDate)");
-        $completionCounts = [];
-        while ($row = $stmt->fetch()) {
-            $completionCounts[date('Y-m-d', strtotime($row['date']))] = $row['count'];
-        }
-        $allDates = [];
-        $completionData = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = date('Y-m-d', strtotime("-$i days"));
-            $allDates[] = date('D', strtotime($date));
-            $completionData[] = isset($completionCounts[$date]) ? $completionCounts[$date] : 0;
-        }
-        ?>
-        const completionCtx = document.getElementById('completionChart').getContext('2d');
-        const completionChart = new Chart(completionCtx, {
-            type: 'line',
-            data: {
-                labels: <?php echo json_encode($allDates); ?>,
-                datasets: [{
-                    label: 'Completed Tasks',
-                    data: <?php echo json_encode($completionData); ?>,
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                    fill: true,
-                    tension: 0.4,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Tasks Completed' } },
-                    x: { title: { display: true, text: 'Day' } }
-                },
-                plugins: {
-                    legend: { position: 'bottom' },
-                    title: { display: true, text: 'Task Completions (Last 7 Days)', font: { size: 14 } }
-                }
-            }
-        });
-
-        // Average Time Deviation by User Chart
-        <?php
-        $stmt = $pdo->query("SELECT 
-            u.Username,
-            ROUND(COALESCE(AVG(w.ActualTime - w.AllocatedTime), 0), 2) AS avg_deviation
-            FROM Users u
-            LEFT JOIN WorkDiary w ON w.UserID = u.UserID
-            WHERE u.Role NOT IN ('SA Team', 'Externals', 'FSID', 'Faculties', 'Smart Factory')
-            GROUP BY u.UserID, u.Username
-            HAVING COUNT(w.ActualTime) > 0
-            ORDER BY avg_deviation DESC
-            LIMIT 10");
-        $deviationLabels = [];
-        $deviationData = [];
-        while ($row = $stmt->fetch()) {
-            $deviationLabels[] = $row['Username'];
-            $deviationData[] = $row['avg_deviation'];
-        }
-        ?>
-        const deviationCtx = document.getElementById('deviationChart').getContext('2d');
-        const deviationChart = new Chart(deviationCtx, {
-            type: 'bar',
-            data: {
-                labels: <?php echo json_encode($deviationLabels); ?>,
-                datasets: [{
-                    label: 'Avg Time Deviation (Hours)',
-                    data: <?php echo json_encode($deviationData); ?>,
-                    backgroundColor: '#4361EE',
-                    borderColor: '#4361EE',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { title: { display: true, text: 'Hours' } },
-                    x: { title: { display: true, text: 'User' } }
-                },
-                plugins: {
-                    legend: { position: 'bottom' },
-                    title: { display: true, text: 'Avg Time Deviation by User', font: { size: 14 } }
-                }
-            }
-        });
-
         // Kanban Drag-and-Drop (read-only)
         document.querySelectorAll('.kanban-card').forEach(card => {
             card.addEventListener('dragstart', () => {
