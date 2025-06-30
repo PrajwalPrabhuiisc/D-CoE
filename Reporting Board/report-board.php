@@ -150,7 +150,6 @@
             text-decoration: underline;
         }
         
-        /* Kanban Board Styles */
         .kanban-board {
             display: flex;
             overflow-x: auto;
@@ -211,6 +210,286 @@
             color: #888;
         }
         
+        /* Leaderboard-specific styles */
+        .leaderboard-wrapper {
+            background: var(--light-color);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .leaderboard-header {
+            background: var(--primary-color);
+            padding: 1rem 1.5rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title i {
+            background: rgba(255, 255, 255, 0.2);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-period {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .info-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .info-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+        }
+
+        .leaderboard-table th {
+            background: var(--light-color);
+            font-weight: 600;
+            color: var(--dark-color);
+            padding: 0.8rem 1rem;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .leaderboard-table tbody tr {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+
+        .leaderboard-table tbody tr:hover {
+            transform: translateY(-3px);
+        }
+
+        .leaderboard-table td {
+            padding: 0.8rem 1rem;
+            vertical-align: middle;
+        }
+
+        .rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .rank-1 { background: #ffca28; color: #4a2c0b; }
+        .rank-2 { background: #b0bec5; color: #263238; }
+        .rank-3 { background: #ff8f00; color: white; }
+        .rank-other { background: #eceff1; color: #546e7a; }
+
+        .username {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-weight: 500;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .metric-container {
+            width: 120px;
+        }
+
+        .metric-value {
+            font-weight: 500;
+            color: var(--dark-color);
+            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #eceff1;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.6s ease-in-out;
+        }
+
+        .progress-task { background: var(--success-color); }
+        .progress-time { background: var(--primary-color); }
+        .progress-consistency { background: var(--accent-color); }
+
+        .total-score {
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .score-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .no-data {
+            padding: 2rem;
+            text-align: center;
+            color: #546e7a;
+            font-size: 1rem;
+        }
+
+        .no-data i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .modal-content {
+            border-radius: 10px;
+            background: white;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .modal-header {
+            background: var(--primary-color);
+            color: white;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .modal-body {
+            padding: 1.2rem;
+            color: var(--dark-color);
+        }
+
+        .calculation-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .calculation-list li {
+            margin-bottom: 0.8rem;
+            padding: 0.8rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .calculation-list li:hover {
+            background: #eceff1;
+            transform: translateX(3px);
+        }
+
+        .calculation-list strong {
+            color: var(--primary-color);
+        }
+
+        .pagination-container {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .pagination {
+            gap: 5px;
+        }
+
+        .page-item .page-link {
+            border-radius: 6px;
+            color: var(--primary-color);
+            background: white;
+            border: 1px solid rgba(67, 97, 238, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .page-item.active .page-link {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .page-item.disabled .page-link {
+            color: #546e7a;
+            background: #f8f9fa;
+            border-color: rgba(67, 97, 238, 0.1);
+        }
+
+        .page-item .page-link:hover {
+            background: var(--accent-color);
+            color: white;
+            border-color: var(--accent-color);
+        }
+
         @media (max-width: 768px) {
             .carousel-item {
                 padding: 10px;
@@ -229,6 +508,28 @@
             .carousel-item canvas {
                 max-height: 300px;
             }
+            .leaderboard-table { display: block; }
+            .leaderboard-table thead { display: none; }
+            .leaderboard-table tbody tr {
+                display: block;
+                margin-bottom: 0.8rem;
+                padding: 0.8rem;
+            }
+            .leaderboard-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.5rem 0.8rem;
+                border-bottom: 1px solid rgba(0,0,0,0.05);
+            }
+            .leaderboard-table td:last-child { border-bottom: none; }
+            .leaderboard-table td::before {
+                content: attr(data-label);
+                font-weight: 500;
+                color: var(--dark-color);
+                margin-right: 0.8rem;
+            }
+            .metric-container { width: 100%; }
         }
     </style>
 </head>
@@ -236,7 +537,6 @@
     <div class="container dashboard-container">
         <h1 class="page-title">SA Digital Dashboard</h1>
         
-        <!-- Slideshow -->
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -302,36 +602,179 @@
                                         <a href="report-diaryentries.php">View all entries <i class="fas fa-arrow-right ms-1"></i></a>
                                     </div>
                                 </div>
-                                <!-- SA Observations Slide -->
+                                <!-- Performance Leaderboard Slide -->
                                 <div class="carousel-item">
-                                    <h5 class="text-center mb-3">Recent SA Observations</h5>
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th>Details</th>
-                                                    <th>Category</th>
-                                                    <th>User</th>
-                                                    <th>Observation Date</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php
-                                                $stmt = $pdo->query("SELECT s.Details, s.Category, u.Username, s.ObservationDate 
-                                                                    FROM SATeamObservations s 
-                                                                    JOIN Users u ON s.UserID = u.UserID 
-                                                                    ORDER BY s.ObservationDate DESC LIMIT 5");
-                                                while ($row = $stmt->fetch()) {
-                                                    echo "<tr>";
-                                                    echo "<td>" . htmlspecialchars($row['Details']) . "</td>";
-                                                    echo "<td><span class='status-badge status-active'>" . htmlspecialchars($row['Category']) . "</span></td>";
-                                                    echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
-                                                    echo "<td>" . htmlspecialchars($row['ObservationDate']) . "</td>";
-                                                    echo "</tr>";
-                                                }
-                                                ?>
-                                            </tbody>
-                                        </table>
+                                    <h5 class="text-center mb-3">Performance Leaderboard</h5>
+                                    <div class="leaderboard-wrapper">
+                                        <div class="leaderboard-header">
+                                            <h2 class="header-title">
+                                                <i class="fas fa-trophy"></i>
+                                                Top Performers
+                                            </h2>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div class="time-period">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                    Last 30 Days
+                                                </div>
+                                                <button class="info-btn" data-bs-toggle="modal" data-bs-target="#calcInfoModal">
+                                                    <i class="fas fa-info"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="leaderboard-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Rank</th>
+                                                        <th>Team Member</th>
+                                                        <th>Task Completion</th>
+                                                        <th>Time Efficiency</th>
+                                                        <th>Consistency</th>
+                                                        <th>Total Score</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php
+                                                    try {
+                                                        $itemsPerPage = 5;
+                                                        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+                                                        $offset = ($page - 1) * $itemsPerPage;
+                                                        $startDate = date('Y-m-d', strtotime('-30 days'));
+
+                                                        $sql = "
+                                                            SELECT 
+                                                                u.Username,
+                                                                COALESCE(
+                                                                    ROUND(COUNT(CASE WHEN w.TaskStatus = 'Completed' THEN 1 END) * 100.0 / NULLIF(COUNT(w.EntryID), 0), 2),
+                                                                    0
+                                                                ) AS TaskCompletionScore,
+                                                                COALESCE(
+                                                                    CASE 
+                                                                        WHEN AVG(w.ActualTime - w.AllocatedTime) <= 0 THEN 100
+                                                                        ELSE GREATEST(100 - (AVG(w.ActualTime - w.AllocatedTime) * 10), 0)
+                                                                    END,
+                                                                    100
+                                                                ) AS TimeEfficiencyScore,
+                                                                COALESCE(
+                                                                    ROUND(
+                                                                        (SUM(CASE WHEN DATE(w.CreatedAt) = w.EntryDate THEN 1 ELSE 0 END) / 
+                                                                        NULLIF(COUNT(w.EntryID), 0)) * 100, 
+                                                                        2
+                                                                    ),
+                                                                    0
+                                                                ) AS SubmissionConsistencyScore,
+                                                                ROUND(
+                                                                    (COALESCE(
+                                                                        ROUND(COUNT(CASE WHEN w.TaskStatus = 'Completed' THEN 1 END) * 100.0 / NULLIF(COUNT(w.EntryID), 0), 2),
+                                                                        0
+                                                                    ) * 0.4) +
+                                                                    (COALESCE(
+                                                                        CASE 
+                                                                            WHEN AVG(w.ActualTime - w.AllocatedTime) <= 0 THEN 100
+                                                                            ELSE GREATEST(100 - (AVG(w.ActualTime - w.AllocatedTime) * 10), 0)
+                                                                        END,
+                                                                        100
+                                                                    ) * 0.3) +
+                                                                    (COALESCE(
+                                                                        ROUND(
+                                                                            (SUM(CASE WHEN DATE(w.CreatedAt) = w.EntryDate THEN 1 ELSE 0 END) / 
+                                                                            NULLIF(COUNT(w.EntryID), 0)) * 100, 
+                                                                            2
+                                                                        ),
+                                                                        0
+                                                                    ) * 0.3),
+                                                                    2
+                                                                ) AS TotalScore,
+                                                                @rank := @rank + 1 as rank
+                                                            FROM workdiary w
+                                                            JOIN users u ON w.UserID = u.UserID
+                                                            CROSS JOIN (SELECT @rank := :offset) as init
+                                                            WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
+                                                            GROUP BY u.UserID, u.Username
+                                                            ORDER BY TotalScore DESC
+                                                            LIMIT :limit OFFSET :offset
+                                                        ";
+
+                                                        $countSql = "
+                                                            SELECT COUNT(DISTINCT w.UserID)
+                                                            FROM workdiary w
+                                                            JOIN users u ON w.UserID = u.UserID
+                                                            WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
+                                                        ";
+                                                        $countStmt = $pdo->prepare($countSql);
+                                                        $countStmt->bindValue(':startDate', $startDate, PDO::PARAM_STR);
+                                                        $countStmt->execute();
+                                                        $totalUsers = $countStmt->fetchColumn();
+                                                        $totalPages = ceil($totalUsers / $itemsPerPage);
+
+                                                        $stmt = $pdo->prepare($sql);
+                                                        $stmt->bindValue(':startDate', $startDate, PDO::PARAM_STR);
+                                                        $stmt->bindValue(':limit', $itemsPerPage, PDO::PARAM_INT);
+                                                        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                                                        $stmt->execute();
+
+                                                        if ($stmt->rowCount() == 0) {
+                                                            echo '<tr><td colspan="6" class="no-data"><i class="fas fa-chart-line"></i>No performance data available</td></tr>';
+                                                        } else {
+                                                            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                                                $rankClass = $row['rank'] == 1 ? 'rank-1' : ($row['rank'] == 2 ? 'rank-2' : ($row['rank'] == 3 ? 'rank-3' : 'rank-other'));
+                                                                $initial = strtoupper(substr($row['Username'], 0, 1));
+                                                                $taskScore = number_format($row['TaskCompletionScore'], 1);
+                                                                $timeScore = number_format($row['TimeEfficiencyScore'], 1);
+                                                                $consistencyScore = number_format($row['SubmissionConsistencyScore'], 1);
+                                                                $totalScore = number_format($row['TotalScore'], 1);
+
+                                                                echo "<tr>";
+                                                                echo "<td data-label='Rank'><div class='rank $rankClass'>" . htmlspecialchars($row['rank']) . "</div></td>";
+                                                                echo "<td data-label='Team Member'><div class='username'><div class='avatar'>$initial</div>" . htmlspecialchars($row['Username']) . "</div></td>";
+                                                                echo "<td data-label='Task Completion'>";
+                                                                echo "<div class='metric-container'>";
+                                                                echo "<div class='metric-value'>$taskScore%</div>";
+                                                                echo "<div class='progress-bar'><div class='progress-fill progress-task' style='width: $taskScore%'></div></div>";
+                                                                echo "</div></td>";
+                                                                echo "<td data-label='Time Efficiency'>";
+                                                                echo "<div class='metric-container'>";
+                                                                echo "<div class='metric-value'>$timeScore%</div>";
+                                                                echo "<div class='progress-bar'><div class='progress-fill progress-time' style='width: $timeScore%'></div></div>";
+                                                                echo "</div></td>";
+                                                                echo "<td data-label='Consistency'>";
+                                                                echo "<div class='metric-container'>";
+                                                                echo "<div class='metric-value'>$consistencyScore%</div>";
+                                                                echo "<div class='progress-bar'><div class='progress-fill progress-consistency' style='width: $consistencyScore%'></div></div>";
+                                                                echo "</div></td>";
+                                                                echo "<td data-label='Total Score'>";
+                                                                echo "<div class='total-score'>";
+                                                                echo "<div class='score-circle'>$totalScore</div>";
+                                                                echo "</div></td>";
+                                                                echo "</tr>";
+                                                            }
+                                                        }
+                                                    } catch (PDOException $e) {
+                                                        echo "<tr><td colspan='6' class='no-data'><i class='fas fa-exclamation-triangle'></i>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                                                    }
+                                                    ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <?php if ($totalPages > 1): ?>
+                                        <div class="pagination-container">
+                                            <nav>
+                                                <ul class="pagination">
+                                                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                                        <a class="page-link" href="?page=<?php echo $page - 1; ?>">Previous</a>
+                                                    </li>
+                                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                                                            <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                                        </li>
+                                                    <?php endfor; ?>
+                                                    <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                                                        <a class="page-link" href="?page=<?php echo $page + 1; ?>">Next</a>
+                                                    </li>
+                                                </ul>
+                                            </nav>
+                                        </div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <!-- Active Tasks Slide -->
@@ -448,6 +891,49 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculation Info Modal -->
+        <div class="modal fade" id="calcInfoModal" tabindex="-1" aria-labelledby="calcInfoModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="calcInfoModalLabel">
+                            <i class="fas fa-calculator"></i> How Scores Are Calculated
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>The leaderboard ranks Team Members based on performance over the last 30 days. Here’s how the total score (out of 100) is calculated:</p>
+                        <ul class="calculation-list">
+                            <li>
+                                <strong>Task Completion (40%):</strong><br>
+                                Percentage of tasks marked as "Completed" in the Work Diary.<br>
+                                <em>Formula:</em> (Completed Tasks / Total Tasks) × 100 × 0.4<br>
+                                <em>Max Points:</em> 40
+                            </li>
+                            <li>
+                                <strong>Time Efficiency (30%):</strong><br>
+                                Score based on how closely actual time matches allocated time.<br>
+                                <em>Formula:</em> If Actual ≤ Allocated: 100; Else: 100 - (Avg Deviation × 10), min 0 × 0.3<br>
+                                <em>Max Points:</em> 30
+                            </li>
+                            <li>
+                                <strong>Consistency (30%):</strong><br>
+                                Percentage of diary entries submitted on the same day as the entry date.<br>
+                                <em>Formula:</em> (Timely Entries / Total Entries) × 100 × 0.3<br>
+                                <em>Max Points:</em> 30
+                            </li>
+                            <li>
+                                <strong>Total Score:</strong><br>
+                                Sum of weighted scores from above.<br>
+                                <em>Formula:</em> Task Completion + Time Efficiency + Consistency<br>
+                                <em>Max Total:</em> 100
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -602,6 +1088,16 @@
                 if (draggingCard) {
                     column.appendChild(draggingCard);
                 }
+            });
+        });
+
+        // Progress Bar Animation for Leaderboard
+        document.addEventListener('DOMContentLoaded', () => {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => bar.style.width = width, 100);
             });
         });
 
