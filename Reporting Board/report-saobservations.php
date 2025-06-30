@@ -526,7 +526,7 @@
                                 CROSS JOIN (SELECT @rank := :offset) as init
                                 WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
                                 GROUP BY u.UserID, u.Username
-                                ORDER BY TotalScore DESC
+                                ORDER BY TotalScore DESC, TaskCompletionScore DESC, TimeEfficiencyScore DESC, SubmissionConsistencyScore DESC
                                 LIMIT :limit OFFSET :offset
                             ";
 
@@ -652,7 +652,7 @@
                         </li>
                         <li>
                             <strong>Total Score:</strong><br>
-                            Sum of weighted scores from above.<br>
+                            Sum of weighted scores from above, sorted in descending order.<br>
                             <em>Formula:</em> Task Completion + Time Efficiency + Consistency<br>
                             <em>Max Total:</em> 100
                         </li>
