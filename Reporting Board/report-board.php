@@ -380,8 +380,8 @@
                                                             0
                                                         ) as timeliness_percentage,
                                                         @rank := @rank + 1 as rank
-                                                    FROM workdiary w
-                                                    JOIN users u ON w.UserID = u.UserID
+                                                    FROM WorkDiary w
+                                                    JOIN Users u ON w.UserID = u.UserID
                                                     CROSS JOIN (SELECT @rank := 0) as init
                                                     WHERE w.EntryDate >= :startDate
                                                     GROUP BY u.UserID, u.Username
@@ -447,28 +447,38 @@
                                 <tbody>
                                     <?php
                                     try {
-                                        $stmt = $pdo->query("SELECT 
-                                            u.Username,
-                                            COALESCE(SUM(CASE WHEN w.AllocatedTime IS NOT NULL THEN w.AllocatedTime ELSE 0 END), 0) AS total_allocated,
-                                            COALESCE(SUM(CASE WHEN w.ActualTime IS NOT NULL THEN w.ActualTime ELSE 0 END), 0) AS total_actual,
-                                            COALESCE(ROUND(AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END), 2), 0) AS avg_deviation
+                                        $startDate = date('Y-m-d', strtotime('-30 days')); // Filter for last 30 days
+                                        $stmt = $pdo->prepare("
+                                            SELECT 
+                                                u.Username,
+                                                COALESCE(SUM(CASE WHEN w.AllocatedTime IS NOT NULL THEN w.AllocatedTime ELSE 0 END), 0) AS total_allocated,
+                                                COALESCE(SUM(CASE WHEN w.ActualTime IS NOT NULL THEN w.ActualTime ELSE 0 END), 0) AS total_actual,
+                                                COALESCE(ROUND(AVG(CASE WHEN w.ActualTime IS NOT NULL AND w.AllocatedTime IS NOT NULL THEN w.ActualTime - w.AllocatedTime END), 2), 0) AS avg_deviation
                                             FROM Users u
-                                            LEFT JOIN WorkDiary w ON w.UserID = u.UserID
+                                            INNER JOIN WorkDiary w ON w.UserID = u.UserID
                                             WHERE u.Role NOT IN ('SA Team', 'Externals', 'FSID', 'Faculties', 'Smart Factory')
+                                                AND w.EntryDate >= :startDate
+                                                AND (w.AllocatedTime IS NOT NULL OR w.ActualTime IS NOT NULL)
                                             GROUP BY u.UserID, u.Username
-                                            ORDER BY u.Username ASC");
+                                            HAVING total_allocated > 0 OR total_actual > 0
+                                            ORDER BY u.Username ASC
+                                            LIMIT 10
+                                        ");
+                                        $stmt->bindValue(':startDate', $startDate, PDO::PARAM_STR);
+                                        $stmt->execute();
                                         
                                         if ($stmt->rowCount() > 0) {
                                             while ($row = $stmt->fetch()) {
+                                                $avgDeviationClass = $row['avg_deviation'] > 0 ? 'status-pending' : ($row['avg_deviation'] < 0 ? 'status-completed' : '');
                                                 echo "<tr>";
                                                 echo "<td><i class='fas fa-user me-1'></i>" . htmlspecialchars($row['Username']) . "</td>";
                                                 echo "<td>" . number_format($row['total_allocated'], 2) . "</td>";
                                                 echo "<td>" . number_format($row['total_actual'], 2) . "</td>";
-                                                echo "<td>" . number_format($row['avg_deviation'], 2) . "</td>";
+                                                echo "<td><span class='status-badge $avgDeviationClass'>" . number_format($row['avg_deviation'], 2) . "</span></td>";
                                                 echo "</tr>";
                                             }
                                         } else {
-                                            echo "<tr><td colspan='4' class='text-center'>No user data available</td></tr>";
+                                            echo "<tr><td colspan='4' class='text-center'>No time deviation data available for the last 30 days</td></tr>";
                                         }
                                     } catch (PDOException $e) {
                                         echo "<tr><td colspan='4' class='text-center text-danger'>Error loading data: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
