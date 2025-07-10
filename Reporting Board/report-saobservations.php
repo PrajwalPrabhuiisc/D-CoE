@@ -481,8 +481,8 @@
                                     u.Username,
                                     COUNT(w.EntryID) AS EntryCount,
                                     @rank := @rank + 1 as rank
-                                FROM workdiary w
-                                JOIN users u ON w.UserID = u.UserID
+                                FROM WorkDiary w
+                                JOIN Users u ON w.UserID = u.UserID
                                 CROSS JOIN (SELECT @rank := :offset) as init
                                 WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
                                 GROUP BY u.UserID, u.Username
@@ -490,11 +490,11 @@
                                 LIMIT :limit OFFSET :offset
                             ";
 
-                            // Count total users for pagination
+                            // Count total Users for pagination
                             $countSql = "
                                 SELECT COUNT(DISTINCT w.UserID)
-                                FROM workdiary w
-                                JOIN users u ON w.UserID = u.UserID
+                                FROM WorkDiary w
+                                JOIN Users u ON w.UserID = u.UserID
                                 WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
                             ";
                             $countStmt = $pdo->prepare($countSql);
