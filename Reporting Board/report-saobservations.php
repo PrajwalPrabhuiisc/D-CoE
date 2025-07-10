@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D-CoE Leaderboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4. all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -232,32 +232,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .metric-container {
-            width: 140px;
-        }
-
-        .metric-value {
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 0.25rem;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            transition: width 0.8s ease-in-out;
-        }
-
-        .progress-task { background: linear-gradient(90deg, var(--secondary), var(--secondary-light)); }
-        .progress-time { background: linear-gradient(90deg, var(--primary), var(--primary-light)); }
-        .progress-consistency { background: linear-gradient(90deg, var(--accent), #f9a8d4); }
-
         .total-score {
             font-weight: 700;
             font-size: 1.2rem;
@@ -294,7 +268,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* Modal Styles */
         .modal-content {
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.95);
@@ -343,7 +316,6 @@
             color: var(--primary);
         }
 
-        /* Pagination Styles */
         .pagination-container {
             margin-top: 20px;
             display: flex;
@@ -380,16 +352,14 @@
             border-color: var(--primary-light);
         }
 
-        /* Responsive Design */
         @media (max-width: 992px) {
             .page-title { font-size: 2.2rem; }
             .leaderboard-header { padding: 1rem 1.5rem; }
             .header-title { font-size: 1.4rem; }
-            .metric-container { width: 120px; }
         }
 
         @media (max-width: 768px) {
-            .leaderboard-table { display: block; }
+            .leaderswing-table { display: block; }
             .leaderboard-table thead { display: none; }
             .leaderboard-table tbody tr {
                 display: block;
@@ -410,7 +380,6 @@
                 color: #475569;
                 margin-right: 1rem;
             }
-            .metric-container { width: 100%; }
         }
 
         @media (max-width: 576px) {
@@ -421,7 +390,6 @@
             .info-btn { width: 28px; height: 28px; }
         }
 
-        /* Animations */
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
@@ -462,9 +430,6 @@
                         <tr>
                             <th>Rank</th>
                             <th>Team Member</th>
-                            <th>Task Completion</th>
-                            <th>Time Efficiency</th>
-                            <th>Consistency</th>
                             <th>Entry Count</th>
                         </tr>
                     </thead>
@@ -476,17 +441,23 @@
                             $offset = ($page - 1) * $itemsPerPage;
                             $startDate = date('Y-m-d', strtotime('-30 days'));
 
+                            // Use a subquery to ensure correct ranking
                             $sql = "
                                 SELECT 
-                                    u.Username,
-                                    COUNT(w.EntryID) AS EntryCount,
-                                    @rank := @rank + 1 as rank
-                                FROM WorkDiary w
-                                JOIN Users u ON w.UserID = u.UserID
-                                CROSS JOIN (SELECT @rank := :offset) as init
-                                WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
-                                GROUP BY u.UserID, u.Username
-                                ORDER BY EntryCount DESC
+                                    Username,
+                                    EntryCount,
+                                    (@rank := @rank + 1) AS rank
+                                FROM (
+                                    SELECT 
+                                        u.Username,
+                                        COUNT(w.EntryID) AS EntryCount
+                                    FROM WorkDiary w
+                                    JOIN Users u ON w.UserID = u.UserID
+                                    WHERE w.EntryDate >= :startDate AND u.Role = 'Team Member'
+                                    GROUP BY u.UserID, u.Username
+                                    ORDER BY EntryCount DESC
+                                ) AS subquery
+                                CROSS JOIN (SELECT @rank := :offset) AS init
                                 LIMIT :limit OFFSET :offset
                             ";
 
@@ -510,7 +481,7 @@
                             $stmt->execute();
 
                             if ($stmt->rowCount() == 0) {
-                                echo '<tr><td colspan="6" class="no-data"><i class="fas fa-chart-line"></i>No performance data available</td></tr>';
+                                echo '<tr><td colspan="3" class="no-data"><i class="fas fa-chart-line"></i>No performance data available</td></tr>';
                             } else {
                                 while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                     $rankClass = $row['rank'] == 1 ? 'rank-1' : ($row['rank'] == 2 ? 'rank-2' : ($row['rank'] == 3 ? 'rank-3' : 'rank-other'));
@@ -520,39 +491,15 @@
                                     echo "<tr>";
                                     echo "<td data-label='Rank'><div class='rank $rankClass'>" . htmlspecialchars($row['rank']) . "</div></td>";
                                     echo "<td data-label='Team Member'><div class='username'><div class='avatar'>$initial</div>" . htmlspecialchars($row['Username']) . "</div></td>";
-                                    
-                                    // Placeholder for Task Completion
-                                    echo "<td data-label='Task Completion'>";
-                                    echo "<div class='metric-container'>";
-                                    echo "<div class='metric-value'>N/A</div>";
-                                    echo "<div class='progress-bar'><div class='progress-fill progress-task' style='width: 0%'></div></div>";
-                                    echo "</div></td>";
-
-                                    // Placeholder for Time Efficiency
-                                    echo "<td data-label='Time Efficiency'>";
-                                    echo "<div class='metric-container'>";
-                                    echo "<div class='metric-value'>N/A</div>";
-                                    echo "<div class='progress-bar'><div class='progress-fill progress-time' style='width: 0%'></div></div>";
-                                    echo "</div></td>";
-
-                                    // Placeholder for Consistency
-                                    echo "<td data-label='Consistency'>";
-                                    echo "<div class='metric-container'>";
-                                    echo "<div class='metric-value'>N/A</div>";
-                                    echo "<div class='progress-bar'><div class='progress-fill progress-consistency' style='width: 0%'></div></div>";
-                                    echo "</div></td>";
-
-                                    // Display Entry Count
                                     echo "<td data-label='Entry Count'>";
                                     echo "<div class='total-score'>";
                                     echo "<div class='score-circle'>$entryCount</div>";
                                     echo "</div></td>";
-
                                     echo "</tr>";
                                 }
                             }
                         } catch (PDOException $e) {
-                            echo "<tr><td colspan='6' class='no-data'><i class='fas fa-exclamation-triangle'></i>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                            echo "<tr><td colspan='3' class='no-data'><i class='fas fa-exclamation-triangle'></i>Database Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
                         }
                         ?>
                     </tbody>
@@ -580,7 +527,6 @@
         </div>
     </div>
 
-    <!-- Calculation Info Modal -->
     <div class="modal fade" id="calcInfoModal" tabindex="-1" aria-labelledby="calcInfoModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -616,7 +562,6 @@
             });
         });
 
-        // Auto-toggle to next page (report-tasks.php) after 2 minutes (120,000 milliseconds)
         setTimeout(function() {
             window.location.href = 'report-tasks.php';
         }, 120000);
